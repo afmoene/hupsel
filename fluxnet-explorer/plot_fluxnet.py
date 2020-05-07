@@ -5,10 +5,15 @@ import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
 from bokeh.palettes import RdBu11 as Mypalette
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool
-output_notebook()
+from bokeh.resources import INLINE
+output_notebook(INLINE)
+
 import warnings
 warnings.filterwarnings('ignore')
 from IPython.core.display import display, HTML
+
+
+
 #display(HTML(r"""<style id=hide>div.input{display:none;}</style><button type="button"onclick="var myStyle = document.getElementById('hide').sheet;myStyle.insertRule('div.input{display:inherit !important;}', 0);">Show notebook cells</button>"""))
 # display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
 
@@ -68,32 +73,99 @@ units    =  {'timestamp':'date_time',
             'GPP':'umol/m2/s',
             'albedo': '-',
             'ET_Makkink': 'W/m2'}
-numeric_name = 'TA_F'
-aggr_methods = ['30min','day', 'month']
 
-def myplot(site='Loobos',x_variable='K_in',y_variable='GPP',
-           color_by='air temperature', averaging='day', plot_lines = False, 
-           connect_points = False):
-           # , range_min=0, range_max=1) :
-		   # , range_min=0, range_max=1):
+# Sites			
+sites     =  ['Loobos','Horstermeer','Rollesbroich']
+site_code =  ['NL-Loo','NL-Hor','DE-RuR']
+site_start_y =  [1996,2004,2011]
+site_end_y   =  [2013,2011,2014]
+
+# Averaging periods
+aggr_methods = ['30min','day', 'month']
+# Constuct units consistent with the averaging periods
+aggr_units = [units, units, units]
+aggr_units[1]['NEE'] = 'gC/m2/d'
+aggr_units[2]['NEE'] = 'gC/m2/d'
+aggr_units[1]['respiration'] = 'gC/m2/d'
+aggr_units[2]['respiration'] = 'gC/m2/d'
+aggr_units[1]['GPP'] = 'gC/m2/d'
+aggr_units[2]['GPP'] = 'gC/m2/d'
+
+
+def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
+           color_by='month', averaging='day', plot_lines = False, 
+           n_lines=4, connect_points = False,
+           return_data = False):
+		   
+    """
+	
+    Flexible plot function to visualize FluxNet data 
+
+    This function provides a flexible way to make scatter plots of FluxNet data. All arguments
+    are optional (they all have a default value). Main uses of this function are:
+    * plot a time series of a variable
+    * plot a scatter plot linking two variables to each other
+    * for scatter plots, the data can additionally be stratified (colored) by a third variable.
+    * the relationship between the x-variable and y-variable can be clarified by showing a fit
+
+    Parameters
+    ----------
+    site : string
+        Name of the site from which to plot data (currently: "Loobos", "Horstermeer", "Rollesbroich")
+    x_var : string
+        Name of variable to plot on the x-axis
+    y_var : string
+        Name of variable to plot on the y-axis
+    color_by : string
+        Name of variable to plot on the y-axis
+    averaging: string
+        Averaging period of the displayed data (currenly: "month", "day", "30min")
+    plot_lines: boolean (True/False)
+        Plot a fit for the relation between the x-variable and y-variable; multiple lines are drawn,
+        for multiple classes of the stratifying variable (the color_by variable)
+    n_lines: integer
+        Number of lines to fit (i.e. the number classes in which the stratifying variable is grouped)
+    connect_points: boolean (True/False)
+        Connect the plotted ppints (useful when plotting a timeseries)
+    return_data: boolean (True/False)
+        Make the function return the dataset used for the plotting (all variables)
+	
+    Returns
+    -------
+    None
+        By default, the function does not return a value (unless 'return_data' was specified: in that 
+        case a Pandas data frame with the dataset is returned
+   
+
+    """
+    if (not (site in sites)):
+        print('%s is an unknown site. Choose from %s'%(site,sites))
+        return
+    if (not (x_var in varnames.keys())):
+        print('%s is an unknown variable. Choose from %s'%(x_var,varnames.keys()))
+        return
+    if (not (y_var in varnames.keys())):
+        print('%s is an unknown variable. Choose from %s'%(y_var,varnames.keys()))
+        return
+    if (not (averaging in aggr_methods)):
+        print('%s is an unknown variable. Choose from %s'%(averaging,aggr_methods))
+        return
+
     fname=''
     range_min = 0
     range_max = 1
     if (averaging == 'day'):
         period = 'DD'
+        local_units = aggr_units[0]
     elif( averaging == 'month'):
         period = 'MM'
+        local_units = aggr_units[2]
     elif (averaging == '30min'):
         period = 'HH'
-    if (site == 'Loobos'):
-        fname_old = fname
-        fname='FLX_NL-Loo_FLUXNET2015_FULLSET_%s_1996-2013_1-3.csv'%(period)
-    elif (site == 'Horstermeer'):
-        fname_old = fname
-        fname='FLX_NL-Hor_FLUXNET2015_FULLSET_%s_2004-2011_1-3.csv'%(period)
-    elif (site == 'Rollesbroich'):
-        fname_old = fname
-        fname='FLX_DE-RuR_FLUXNET2015_FULLSET_%s_2011-2014_1-3.csv'%(period)
+        local_units = aggr_units[1]
+    site_num = sites.index(site)
+    fname_old = fname
+    fname='FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_1-3.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],)
 
     if (fname_old != fname):
         all_data=pd.read_csv(fname, na_values='-9999')
@@ -127,23 +199,24 @@ def myplot(site='Loobos',x_variable='K_in',y_variable='GPP',
             if (varnames[key]  not in all_data):
                 foo=loc_varnames.pop(key)
 
-    my_x = all_data[varnames[x_variable]].values
-    my_y = all_data[varnames[y_variable]].values
+    my_x = all_data[varnames[x_var]].values
+    my_y = all_data[varnames[y_var]].values
     my_c = all_data[varnames[color_by]].values
 
     # fig=plt.figure(figsize=(9,5))
-    _tools_to_show = 'box_zoom,save,hover,reset' 
-    if (x_variable =='timestamp'):
-        p = figure(title=site, 
-                   x_axis_label="%s (%s)"%(x_variable, units[x_variable]), 
-                   y_axis_label="%s (%s)"%(y_variable, units[y_variable]),
+    _tools_to_show = 'box_zoom,save,pan,reset' 
+
+    if (x_var =='timestamp'):
+        p = figure(title="%s (averaging: %s)"%(site, averaging), 
+                   x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
+                   y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show, toolbar_location="below",
                    toolbar_sticky=False, x_axis_type="datetime", plot_height=500, plot_width=900)
         # p.toolbar.active_drag = BoxZoomTool()
     else:
-        p = figure(title=site, 
-                   x_axis_label="%s (%s)"%(x_variable, units[x_variable]), 
-                   y_axis_label="%s (%s)"%(y_variable, units[y_variable]),
+        p = figure(title="%s (averaging: %s)"%(site, averaging), 
+                   x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
+                   y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show,toolbar_location="below",
                    toolbar_sticky=False, plot_height=500,  plot_width=900)
         # p.toolbar.active_drag = BoxZoomTool()
@@ -172,10 +245,9 @@ def myplot(site='Loobos',x_variable='K_in',y_variable='GPP',
     p.scatter('x_values', 'y_values', source=source, fill_color=colors, line_color=None)
     if (connect_points):
         p.line(my_x,my_y)
-    if (plot_lines and x_variable != 'timestamp' and color_by!= 'time_stamp'):
-         if (x_variable =='timestamp'):
+    if (plot_lines and x_var != 'timestamp' and color_by!= 'time_stamp'):
+         if (x_var =='timestamp'):
              my_x = my_x.astype(int)
-         n_lines=4
          quant_step=1.0/(n_lines)
          q_low = np.arange(n_lines)*quant_step
          q_high = (np.arange(n_lines)+1)*quant_step
@@ -200,11 +272,15 @@ def myplot(site='Loobos',x_variable='K_in',y_variable='GPP',
  
     color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
     p.add_layout(color_bar, 'right')
+    p.toolbar.active_drag = None
     show(p)
+	
+    if (return_data):
+        return all_data
 
     
-varname_keys=list(varnames.keys())
-interact(myplot,site=['Loobos','Horstermeer','Rollesbroich'], x_variable=varnames.keys(), 
-         y_variable=varnames.keys(), color_by=varnames.keys(),  averaging=aggr_methods,         
-         plot_lines=False, connect_points = False);
-#, range_min=(0,1,0.1),  range_max=(0,1,0.1));
+#varname_keys=list(varnames.keys())
+#interact(myplot,site=['Loobos','Horstermeer','Rollesbroich'], x_var=varnames.keys(), 
+#         y_var=varnames.keys(), color_by=varnames.keys(),  averaging=aggr_methods,         
+#         plot_lines=False, connect_points = False);
+##, range_min=(0,1,0.1),  range_max=(0,1,0.1));
