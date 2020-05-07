@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from IPython.core.display import display, HTML
 #display(HTML(r"""<style id=hide>div.input{display:none;}</style><button type="button"onclick="var myStyle = document.getElementById('hide').sheet;myStyle.insertRule('div.input{display:inherit !important;}', 0);">Show notebook cells</button>"""))
-display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
+# display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
 
 
 def esat(T):
