@@ -33,11 +33,11 @@ varnames = {'timestamp':'date_time',
             'K_out': 'SW_OUT',
             'L_in':'LW_IN_F',
             'L_out':'LW_OUT',
-#            'PAR':'PPFD_IN',
+            'PAR':'PPFD_IN',
             'Q*': 'NETRAD',
             'VPD':'VPD_F',
             'RH':'RH',
-            'preciptation':'P_F',
+            'precipitation':'P_F',
             'u*': 'USTAR',
             'wind speed': 'WS_F',
             'LE':'LE_CORR',
@@ -47,6 +47,7 @@ varnames = {'timestamp':'date_time',
             'respiration': 'RECO_NT_VUT_MEAN',
             'GPP': 'GPP_NT_VUT_MEAN',
             'albedo':'albedo',
+			'DOY':'DOY',
             'ET_Makkink': 'ET_Makkink'}
 
 units    =  {'timestamp':'date_time',
@@ -58,11 +59,11 @@ units    =  {'timestamp':'date_time',
             'K_out': 'W/m2',
             'L_in':'W/m2',
             'L_out':'W/m2',
-#            'PAR':'PPFD_IN',
+            'PAR':'µmolPhoton m-2 s-1',
             'Q*': 'W/m2',
             'VPD':'hPa',
             'RH':'%',
-            'preciptation':'mm',
+            'precipitation':'mm/day',
             'u*': 'm/s',
             'wind speed': 'm/s',
             'LE':'W/m2',
@@ -72,6 +73,7 @@ units    =  {'timestamp':'date_time',
             'respiration':'umol/m2/s',
             'GPP':'umol/m2/s',
             'albedo': '-',
+			'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
 # Sites			
@@ -83,7 +85,7 @@ site_end_y   =  [2013,2011,2014]
 # Averaging periods
 aggr_methods = ['30min','day', 'month']
 # Constuct units consistent with the averaging periods
-aggr_units = [units, units, units]
+aggr_units = [units.copy(), units.copy(), units.copy()]
 aggr_units[1]['NEE'] = 'gC/m2/d'
 aggr_units[2]['NEE'] = 'gC/m2/d'
 aggr_units[1]['respiration'] = 'gC/m2/d'
@@ -91,6 +93,14 @@ aggr_units[2]['respiration'] = 'gC/m2/d'
 aggr_units[1]['GPP'] = 'gC/m2/d'
 aggr_units[2]['GPP'] = 'gC/m2/d'
 
+# Availability of data per site
+avail = {}
+var_avail = {}
+for varname in varnames.keys():
+    avail[varname] = True
+for i in range(len(sites)):
+   var_avail[sites[i]] = avail.copy()
+var_avail['Horstermeer']['PAR'] = False
 
 def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
            color_by='month', averaging='day', plot_lines = False, 
@@ -147,22 +157,35 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     if (not (y_var in varnames.keys())):
         print('%s is an unknown variable. Choose from %s'%(y_var,varnames.keys()))
         return
-    if (not (averaging in aggr_methods)):
-        print('%s is an unknown variable. Choose from %s'%(averaging,aggr_methods))
+    if (not (color_by in varnames.keys())):
+        print('%s is an unknown variable. Choose from %s'%(color_by,varnames.keys()))
         return
+    if (not (averaging in aggr_methods)):
+        print('%s is an unknown averaging interval. Choose from %s'%(averaging,aggr_methods))
+        return
+    if (var_avail[site][x_var] == False):
+        print('Variable %s is not available for site %s'%(x_var,site))
+        return  
+    if (var_avail[site][y_var] == False):
+        print('Variable %s is not available for site %s'%(y_var,site))
+        return
+    if (var_avail[site][color_by] == False):
+        print('Variable %s is not available for site %s'%(color_by,site))
+        return
+		
 
     fname=''
     range_min = 0
     range_max = 1
     if (averaging == 'day'):
         period = 'DD'
-        local_units = aggr_units[0]
+        local_units = aggr_units[1]
     elif( averaging == 'month'):
         period = 'MM'
         local_units = aggr_units[2]
     elif (averaging == '30min'):
         period = 'HH'
-        local_units = aggr_units[1]
+        local_units = aggr_units[0]
     site_num = sites.index(site)
     fname_old = fname
     fname='FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_1-3.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],)
@@ -193,6 +216,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         all_data['albedo'] = np.where((all_data['albedo'] < 0), 0,all_data['albedo']) 
         es = esat(Temp)
         all_data['RH'] = 100*(1-all_data['VPD_F']/(0.01*es))
+        all_data['DOY'] = pd.DatetimeIndex(all_data['date_time']).dayofyear
 
         loc_varnames = varnames.copy()
         for key in varnames.keys():
