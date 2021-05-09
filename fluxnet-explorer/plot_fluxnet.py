@@ -309,7 +309,8 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
              palette_index = int(len(Mypalette)*(i/(n_lines)))
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
              if (plot_quant):
-                 band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', fill_alpha=0.8)
+                 band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', 
+                             fill_alpha=0.7, line_width=1, line_color='black', fill_color=Mypalette[palette_index])
                  p.add_layout(band)
  
     color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
