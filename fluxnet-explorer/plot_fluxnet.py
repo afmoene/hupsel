@@ -291,20 +291,15 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                          (my_x[cond_c] < np.nanquantile(my_x[cond_c], p_high[j]))
                 sum_x[j] = np.nanmedian(my_x[cond_c][cond_p])
                 sum_y[j] = np.nanmedian(my_y[cond_c][cond_p])
-				upper[j] = np.nanquantile(my_y[cond_c][cond_p],0.75)
-				lower[j] = np.nanquantile(my_y[cond_c][cond_p],0.25)
+                upper[j] = np.nanquantile(my_y[cond_c][cond_p],0.75)
+                lower[j] = np.nanquantile(my_y[cond_c][cond_p],0.25)
              
              df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
              source = ColumnDataSource(df.reset_index())			 
              palette_index = int(len(Mypalette)*(i/(n_lines)))
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
-			 band = Band(base='x', lower='lower', upper='upper', level='underlay', fill_alpha=0.5)
-                upper[j] = np.nanquantile(my_y[cond_c][cond_p],0.75)
-                lower[j] = np.nanquantile(my_y[cond_c][cond_p],0.25)
-                
-             palette_index = int(len(Mypalette)*(i/(n_lines)))
-             p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
              band = Band(base=sum_x, lower='lower', upper='upper', source=source, level='underlay', fill_alpha=0.5)
+             p.add_layout(band)
  
     color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
     p.add_layout(color_bar, 'right')
