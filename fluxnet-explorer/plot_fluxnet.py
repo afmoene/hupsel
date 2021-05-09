@@ -73,7 +73,7 @@ units    =  {'timestamp':'date_time',
             'respiration':'umol/m2/s',
             'GPP':'umol/m2/s',
             'albedo': '-',
-			'DOY': '-',
+            'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
 # Sites			
@@ -104,7 +104,8 @@ var_avail['Horstermeer']['PAR'] = False
 
 def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
            color_by='month', averaging='day', plot_lines = False, 
-           n_lines=4, connect_points = False,
+           n_lines=4, connect_points = False, plot_quant = False,
+           quantile = 0.25,
            return_data = False):
 		   
     """
@@ -134,7 +135,11 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         Plot a fit for the relation between the x-variable and y-variable; multiple lines are drawn,
         for multiple classes of the stratifying variable (the color_by variable)
     n_lines: integer
-        Number of lines to fit (i.e. the number classes in which the stratifying variable is grouped)
+        If plot_lines: number of lines to fit (i.e. the number classes in which the stratifying variable is grouped)
+    plot_quant: boolean (True/False)
+        If plot_lines: show a band around the line of give quantiles (default: 0.25 and 0.75)
+    quantile: float
+        If plot_lines and plot_quant: the quantile to be shown (shows the range [quantile, 1-quantile])
     connect_points: boolean (True/False)
         Connect the plotted ppints (useful when plotting a timeseries)
     return_data: boolean (True/False)
@@ -171,6 +176,9 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         return
     if (var_avail[site][color_by] == False):
         print('Variable %s is not available for site %s'%(color_by,site))
+        return
+    if (plot_quant & (plot_lines == False)):
+        print('Cannot show quantiles if plot_lines is not set to True')
         return
 		
 
@@ -291,15 +299,18 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                          (my_x[cond_c] < np.nanquantile(my_x[cond_c], p_high[j]))
                 sum_x[j] = np.nanmedian(my_x[cond_c][cond_p])
                 sum_y[j] = np.nanmedian(my_y[cond_c][cond_p])
-                upper[j] = np.nanquantile(my_y[cond_c][cond_p],0.75)
-                lower[j] = np.nanquantile(my_y[cond_c][cond_p],0.25)
-             
-             df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
+                if (plot_quant):
+                    upper[j] = np.nanquantile(my_y[cond_c][cond_p],1 - quantile)
+                    lower[j] = np.nanquantile(my_y[cond_c][cond_p],quantile)
+
+             if (plot_quant):
+                 df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
              source = ColumnDataSource(df.reset_index())			 
              palette_index = int(len(Mypalette)*(i/(n_lines)))
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
-             band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', fill_alpha=0.5)
-             p.add_layout(band)
+             if (plot_quant):
+                 band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', fill_alpha=0.8)
+                 p.add_layout(band)
  
     color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
     p.add_layout(color_bar, 'right')
