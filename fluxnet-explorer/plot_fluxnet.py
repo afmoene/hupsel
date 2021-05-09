@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
 from bokeh.palettes import RdBu11 as Mypalette
-from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool
+from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
 output_notebook(INLINE)
 
@@ -282,6 +282,8 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
          for i in range(n_lines):
              sum_x = np.zeros((n_points,), dtype=float)
              sum_y = np.zeros((n_points,), dtype=float)
+			 upper = np.zeros((n_points,), dtype=float)
+			 lower = np.zeros((n_points,), dtype=float)
              cond_c = (my_c > np.nanquantile(my_c, q_low[i]))* \
                       (my_c < np.nanquantile(my_c, q_high[i]))
              for j in range(n_points):
@@ -289,10 +291,12 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                          (my_x[cond_c] < np.nanquantile(my_x[cond_c], p_high[j]))
                 sum_x[j] = np.nanmedian(my_x[cond_c][cond_p])
                 sum_y[j] = np.nanmedian(my_y[cond_c][cond_p])
+				upper[j] = np.nanquantile(my_y[cond_c][cond_p],0.75)
+				lower[j] = np.nanquantile(my_y[cond_c][cond_p],0.25)
                 
              palette_index = int(len(Mypalette)*(i/(n_lines)))
-#             print (sum_x)
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
+			 band = Band(base=sum_x, lower=lower, upper=upper, level='underlay', fill_alpha=0.5)
  
     color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
     p.add_layout(color_bar, 'right')
