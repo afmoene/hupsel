@@ -306,7 +306,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
              if (plot_quant):
                  df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
                  source = ColumnDataSource(df.reset_index())			 
-             palette_index = int(len(Mypalette)*(i/(n_lines)))
+             palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
              if (plot_quant):
                  band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', 
