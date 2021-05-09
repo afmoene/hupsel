@@ -103,7 +103,7 @@ for i in range(len(sites)):
 var_avail['Horstermeer']['PAR'] = False
 
 def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
-           color_by='month', averaging='day', plot_lines = False, 
+           color_by=None, averaging='day', plot_lines = False, 
            n_lines=4, connect_points = False, plot_quant = False,
            quantile = 0.25,
            return_data = False):
@@ -162,7 +162,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     if (not (y_var in varnames.keys())):
         print('%s is an unknown variable. Choose from %s'%(y_var,varnames.keys()))
         return
-    if (not (color_by in varnames.keys())):
+    if (color_by and (not (color_by in varnames.keys()))):
         print('%s is an unknown variable. Choose from %s'%(color_by,varnames.keys()))
         return
     if (not (averaging in aggr_methods)):
@@ -174,7 +174,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     if (var_avail[site][y_var] == False):
         print('Variable %s is not available for site %s'%(y_var,site))
         return
-    if (var_avail[site][color_by] == False):
+    if (color_by and (var_avail[site][color_by] == False)):
         print('Variable %s is not available for site %s'%(color_by,site))
         return
     if (plot_quant & (plot_lines == False)):
@@ -233,7 +233,8 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
 
     my_x = all_data[varnames[x_var]].values
     my_y = all_data[varnames[y_var]].values
-    my_c = all_data[varnames[color_by]].values
+    if (color_by):
+        my_c = all_data[varnames[color_by]].values
 
     # fig=plt.figure(figsize=(9,5))
     _tools_to_show = 'box_zoom,save,pan,reset' 
@@ -261,15 +262,18 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     
     if (range_min >= range_max):
         range_min = range_max - 0.1
-    if (color_by != 'timestamp'):
-        mapper = LinearColorMapper( palette=Mypalette, 
-                                   low=(np.nanmin(my_c)+range_min*(np.nanmax(my_c)-np.nanmin(my_c))), 
-                                   high=(np.nanmin(my_c)+range_max*(np.nanmax(my_c)-np.nanmin(my_c))))
+    if (color_by):
+        if (color_by != 'timestamp'):
+            mapper = LinearColorMapper( palette=Mypalette, 
+                                       low=(np.nanmin(my_c)+range_min*(np.nanmax(my_c)-np.nanmin(my_c))), 
+                                       high=(np.nanmin(my_c)+range_max*(np.nanmax(my_c)-np.nanmin(my_c))))
+        else:
+            mapper = LinearColorMapper( palette=Mypalette, 
+                                       low=(np.min(my_c.astype(float))+range_min*(np.max(my_c.astype(float))-np.min(my_c.astype(float)))), 
+                                       high=(np.min(my_c.astype(float))+range_max*(np.max(my_c.astype(float))-np.min(my_c.astype(float)))), )
+        colors= { 'field': 'c_values', 'transform': mapper}
     else:
-        mapper = LinearColorMapper( palette=Mypalette, 
-                                   low=(np.min(my_c.astype(float))+range_min*(np.max(my_c.astype(float))-np.min(my_c.astype(float)))), 
-                                   high=(np.min(my_c.astype(float))+range_max*(np.max(my_c.astype(float))-np.min(my_c.astype(float)))), )
-    colors= { 'field': 'c_values', 'transform': mapper}
+        colors = 'black'
     
 #    if (plot_line):
 #         p.line(my_x, my_y, line_width=2)
@@ -277,7 +281,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     p.scatter('x_values', 'y_values', source=source, fill_color=colors, line_color=None)
     if (connect_points):
         p.line(my_x,my_y)
-    if (plot_lines and x_var != 'timestamp' and color_by!= 'time_stamp'):
+    if (color_by and plot_lines and x_var != 'timestamp' and color_by!= 'time_stamp'):
          if (x_var =='timestamp'):
              my_x = my_x.astype(int)
          quant_step=1.0/(n_lines)
@@ -312,9 +316,9 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                  band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', 
                              fill_alpha=0.7, line_width=1, line_color='black', fill_color=Mypalette[palette_index])
                  p.add_layout(band)
- 
-    color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
-    p.add_layout(color_bar, 'right')
+    if (color_by):
+        color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
+        p.add_layout(color_bar, 'right')
     p.toolbar.active_drag = None
     show(p)
 	
