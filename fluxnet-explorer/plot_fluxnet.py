@@ -47,6 +47,7 @@ varnames = {'timestamp':'date_time',
             'respiration': 'RECO_NT_VUT_MEAN',
             'GPP': 'GPP_NT_VUT_MEAN',
             'albedo':'albedo',
+            'EF':'EF',
 			'DOY':'DOY',
             'ET_Makkink': 'ET_Makkink'}
 
@@ -73,6 +74,7 @@ units    =  {'timestamp':'date_time',
             'respiration':'umol/m2/s',
             'GPP':'umol/m2/s',
             'albedo': '-',
+            'EF': '-',
             'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
@@ -225,6 +227,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         all_data['albedo'] = all_data['SW_OUT'].values/all_data['SW_IN_F'].values
         all_data['albedo'] = np.where((all_data['albedo'] > 1), 1,all_data['albedo']) 
         all_data['albedo'] = np.where((all_data['albedo'] < 0), 0,all_data['albedo']) 
+        all_data['EF'] = all_data['LE'].values/(all_data['LE'].values + all_data['H'].values)
         es = esat(Temp)
         all_data['RH'] = 100*(1-all_data['VPD_F']/(0.01*es))
         all_data['DOY'] = pd.DatetimeIndex(all_data['date_time']).dayofyear
