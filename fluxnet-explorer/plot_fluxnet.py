@@ -224,10 +224,10 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         s = esat_slope(Temp)
         gamma = 65.5
         all_data['ET_Makkink'] = 0.65*(s/(gamma+s))*all_data[varnames['K_in']]
-        all_data['albedo'] = all_data['SW_OUT'].values/all_data['SW_IN_F'].values
+        all_data['albedo'] = all_data[varnames['K_out']].values/all_data[varnames['K_in']].values
         all_data['albedo'] = np.where((all_data['albedo'] > 1), 1,all_data['albedo']) 
         all_data['albedo'] = np.where((all_data['albedo'] < 0), 0,all_data['albedo']) 
-        all_data['EF'] = all_data['LE'].values/(all_data['LE'].values + all_data['H'].values)
+        all_data['EF'] = all_data[varnames['LE']].values/(all_data[varnames['LE']].values + all_data[varnames['H']].values)
         es = esat(Temp)
         all_data['RH'] = 100*(1-all_data['VPD_F']/(0.01*es))
         all_data['DOY'] = pd.DatetimeIndex(all_data['date_time']).dayofyear
