@@ -185,6 +185,8 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     fname=''
     range_min = 0
     range_max = 1
+    
+    # Determine components of file names
     if (averaging == 'day'):
         period = 'DD'
         local_units = aggr_units[1]
@@ -198,6 +200,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     fname_old = fname
     fname='FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_1-3.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],)
 
+    # Did we change file name -> read the new file and compute derived variables
     if (fname_old != fname):
         all_data=pd.read_csv(fname, na_values='-9999')
         if (averaging == 'day'):
@@ -231,11 +234,20 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
             if (varnames[key]  not in all_data):
                 foo=loc_varnames.pop(key)
 
+    # Get the variables to be plotted
     my_x = all_data[varnames[x_var]].values
     my_y = all_data[varnames[y_var]].values
     if (color_by):
         my_c = all_data[varnames[color_by]].values
-
+    if (color_by):  
+        data = {'x_values': my_x,
+                'y_values': my_y,
+                'c_values': my_c}
+    else:
+        data = {'x_values': my_x,
+                'y_values': my_y}  
+        
+        
     # fig=plt.figure(figsize=(9,5))
     _tools_to_show = 'box_zoom,save,pan,reset' 
 
@@ -253,11 +265,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                    tools=_tools_to_show,toolbar_location="below",
                    toolbar_sticky=False, plot_height=500,  plot_width=900)
         # p.toolbar.active_drag = BoxZoomTool()
-  
-    data = {'x_values': my_x,
-            'y_values': my_y,
-            'c_values': my_c}
-
+    
     source = ColumnDataSource(data=data)
     
     if (range_min >= range_max):
