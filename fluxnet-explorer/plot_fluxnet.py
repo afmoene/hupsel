@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
-from bokeh.palettes import Turbo256 as Mypalette
+from bokeh.palettes import RdYlBu as Mypalette
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
 output_notebook(INLINE)
