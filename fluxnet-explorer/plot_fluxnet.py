@@ -236,7 +236,6 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         for key in varnames.keys():
             if (varnames[key]  not in all_data):
                 foo=loc_varnames.pop(key)
-		for i in range(
 
     # Get the variables to be plotted
     my_x = all_data[varnames[x_var]].values
