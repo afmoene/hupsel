@@ -117,8 +117,8 @@ def myplot(*args):
         show(p)
     
 def myreadfile(fname, type='day'):   
-    teacher_dir = os.getenv('TEACHER_DIR')
-    fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
+    #teacher_dir = os.getenv('TEACHER_DIR')
+    # fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
     fullpath = fname
     # The dataframe that contains the data (both KNMI data and MAQ data)
     df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=0, parse_date=1)
