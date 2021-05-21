@@ -138,7 +138,7 @@ def myreadfile(fname, type='day'):
         df.attrs['description']=descr_dict    
 
     # Assume that we want to use the first column (datetime) as an index
-    df.set_index(df.keys()[0], inplace=True)        
+    df.set_index(df.keys()[0], inplace=True, drop=False)        
 
     return df
 
@@ -156,6 +156,9 @@ def f_Lv_ref(T):
     
     return result   
 
+def f_Lv(T):
+    return f_Lv_ref(T)
+    
 # Function to compute saturated vapour pressure in Pa
 # The argument T is assumed to be in Kelvin
 # See secton 7.1 of the AVSi formularium
@@ -170,6 +173,8 @@ def f_esat_ref(T):
     result = c1*np.exp((c2*(T-c3))/(-c4+T))
     
     return result
+def f_esat(T):
+    return f_esat_ref(T)
 
 # Function to compute slope of the saturated vapour pressure in Pa/K
 # The argument T is assumed to be in Kelvin
@@ -180,9 +185,11 @@ def f_s_ref(T):
     c2 = 30.03
 
     # Compute the result (complete the formula)
-    result = esat_ref(T)*c1/(-c2+T)**2
+    result = f_esat_ref(T)*c1/(-c2+T)**2
     
     return result
+def f_s(T):
+    return f_s_ref(T)
 
 # Function to compute the psychrometer constant
 # The arguments are temperature T (in K), pressure p in Pa, specific humidity q in kg/kg
@@ -199,14 +206,17 @@ def f_gamma_ref(T, p, q):
     
     return result  
 
+def f_gamma(T, p, q):
+    return f_gamma_ref(T, p, q)
+    
 # Function to compute reference evapotranspiration according to Makkink
 # The arguments are global radiation K_in in W/m2, temperature T (in K), pressure p in Pa, specific humidity q in kg/kg
 # See secton 7.7 of the AVSI formularium or chapter 7 in Moene & van Dam (2014)
 # Please note what is the unit of the resulting number !
 def f_makkink_ref(K_in, T, p, q):
     # First compute s and gamma from the data
-    gamma_data = gamma_ref(T, p, q)
-    s_data = s_ref(T)
+    gamma_data = f_gamma_ref(T, p, q)
+    s_data = f_s_ref(T)
     
     # Now construct the Makkink equation (i.e. replace the '0' by the correct equation)
     # What is the unit?
@@ -214,6 +224,8 @@ def f_makkink_ref(K_in, T, p, q):
     
     return result
 
+def f_makkink(K_in, T, p, q):
+    return f_makkink_ref(K_in, T, p, q)
 
 def checkplot(x, f_ref, f_in, x_name, f_name):
     output_notebook()
