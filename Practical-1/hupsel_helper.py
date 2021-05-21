@@ -136,13 +136,16 @@ def myreadfile(fname, type='day'):
     for i in range(len(descr.values[0])):
         descr_dict[df.keys()[i]] = descr.values[0][i]
         df.attrs['description']=descr_dict    
-        
+
+    # Assume that we want to use the first column (datetime) as an index
+    df.set_index(df.keys()[0], inplace=True)        
+
     return df
 
 # Function to compute latent heat of vapourization
 # The argument T is assumed to be in Kelvin
 # This function is complete and functioning as an example
-def Lv_ref(T):
+def f_Lv_ref(T):
     # Define constants
     c1 = 2501000
     c2 = 0.00095
@@ -156,7 +159,7 @@ def Lv_ref(T):
 # Function to compute saturated vapour pressure in Pa
 # The argument T is assumed to be in Kelvin
 # See secton 7.1 of the AVSi formularium
-def esat_ref(T):
+def f_esat_ref(T):
     # Define constants (check the values, the zeros are certainly wrong)
     c1 = 611.2
     c2 = 17.62
@@ -171,7 +174,7 @@ def esat_ref(T):
 # Function to compute slope of the saturated vapour pressure in Pa/K
 # The argument T is assumed to be in Kelvin
 # See secton 7.1 of the AVSi formularium
-def s_ref(T):
+def f_s_ref(T):
     # Define constants (check the values, the zeros are certainly wrong)
     c1 = 4284
     c2 = 30.03
@@ -183,7 +186,7 @@ def s_ref(T):
 
 # Function to compute the psychrometer constant
 # The arguments are temperature T (in K), pressure p in Pa, specific humidity q in kg/kg
-def gamma_ref(T, p, q):
+def f_gamma_ref(T, p, q):
     # Define constants (chaeck the values, the zeros are certainly wrong)
     c1 = 65.5
     c2 = 0.84
@@ -200,7 +203,7 @@ def gamma_ref(T, p, q):
 # The arguments are global radiation K_in in W/m2, temperature T (in K), pressure p in Pa, specific humidity q in kg/kg
 # See secton 7.7 of the AVSI formularium or chapter 7 in Moene & van Dam (2014)
 # Please note what is the unit of the resulting number !
-def makkink_ref(K_in, T, p, q):
+def f_makkink_ref(K_in, T, p, q):
     # First compute s and gamma from the data
     gamma_data = gamma_ref(T, p, q)
     s_data = s_ref(T)
@@ -220,40 +223,40 @@ def checkplot(x, f_ref, f_in, x_name, f_name):
     p.scatter(x,f_in(x), legend_label='your %s'%(f_name))
     show(p)
 
-def check_Lv(Lv_in):
+def check_Lv(f_Lv_in):
     T = np.linspace(273,273+40)
-    ref_data = Lv_ref(T)
-    test_data = Lv_in(T)
+    ref_data = f_Lv_ref(T)
+    test_data = f_Lv_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
     if (rms < 1e-3*ref_data.mean()):
         print("Well done")
     else:
         print("Not good")
-        checkplot(T, Lv_ref, Lv_in, 'T (K)', 'Lv (J/kg)')
+        checkplot(T, f_Lv_ref, f_Lv_in, 'T (K)', 'Lv (J/kg)')
         
-def check_esat(esat_in):
+def check_esat(f_esat_in):
     T = np.linspace(273,273+40)
-    ref_data = esat_ref(T)
-    test_data = esat_in(T)
+    ref_data = f_esat_ref(T)
+    test_data = f_esat_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
     if (rms < 1e-3*ref_data.mean()):
         print("Well done")
     else:
         print("Not good")
-        checkplot(T, esat_ref, esat_in, 'T (K)', 'esat (Pa)')
+        checkplot(T, f_esat_ref, f_esat_in, 'T (K)', 'esat (Pa)')
         
-def check_s(s_in):
+def check_s(f_s_in):
     T = np.linspace(273,273+40)
-    ref_data = s_ref(T)
-    test_data = s_in(T)
+    ref_data = f_s_ref(T)
+    test_data = f_s_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
     if (rms < 1e-3*ref_data.mean()):
         print("Well done")
     else:
         print("Not good")
-        checkplot(T, s_ref, s_in, 'T (K)', 's (Pa/K)')
+        checkplot(T, f_s_ref, f_s_in, 'T (K)', 's (Pa/K)')
                 
-def check_gamma(gamma_in):
+def check_gamma(f_gamma_in):
     T_range = np.linspace(273,273+40)
     p_range = np.linspace(950e2,1050e2)
     q_range = np.linspace(1e-3,40e-3)
@@ -268,8 +271,8 @@ def check_gamma(gamma_in):
                 var_in.append(var[j])
             else:
                 var_in.append(var[j].mean())
-        ref_data = gamma_ref(var_in[0],var_in[1],var_in[2])    
-        test_data = gamma_in(var_in[0],var_in[1],var_in[2])
+        ref_data = f_gamma_ref(var_in[0],var_in[1],var_in[2])    
+        test_data = f_gamma_in(var_in[0],var_in[1],var_in[2])
         rms = np.sqrt(np.mean((ref_data - test_data)**2))
         if (rms < 1e-3*ref_data.mean()):
             error.append(0)
@@ -287,8 +290,8 @@ def check_gamma(gamma_in):
                     var_in.append(var[j])
                 else:
                     var_in.append(var[j].mean())
-            ref_data = gamma_ref(var_in[0],var_in[1],var_in[2])    
-            test_data = gamma_in(var_in[0],var_in[1],var_in[2])
+            ref_data = f_gamma_ref(var_in[0],var_in[1],var_in[2])    
+            test_data = f_gamma_in(var_in[0],var_in[1],var_in[2])
 
             output_notebook()
             x_name = var_name[i]
@@ -299,7 +302,7 @@ def check_gamma(gamma_in):
             pl.scatter(var[i],test_data, legend_label='your %s'%(f_name))
             show(pl)
 
-def check_makkink(makkink_in):
+def check_makkink(f_makkink_in):
     Kin_range = np.linspace(0,900)
     T_range = np.linspace(273,273+40)
     p_range = np.linspace(950e2,1050e2)
@@ -315,8 +318,8 @@ def check_makkink(makkink_in):
                 var_in.append(var[j])
             else:
                 var_in.append(var[j].mean())
-        ref_data = makkink_ref(var_in[0],var_in[1],var_in[2], var_in[3])    
-        test_data = makkink_in(var_in[0],var_in[1],var_in[2], var_in[3])
+        ref_data = f_makkink_ref(var_in[0],var_in[1],var_in[2], var_in[3])    
+        test_data = f_makkink_in(var_in[0],var_in[1],var_in[2], var_in[3])
         rms = np.sqrt(np.mean((ref_data - test_data)**2))
         if (rms < 1e-3*ref_data.mean()):
             error.append(0)
@@ -334,8 +337,8 @@ def check_makkink(makkink_in):
                     var_in.append(var[j])
                 else:
                     var_in.append(var[j].mean())
-            ref_data = makkink_ref(var_in[0],var_in[1],var_in[2], var_in[3])    
-            test_data = makkink_in(var_in[0],var_in[1],var_in[2], var_in[3])
+            ref_data = f_makkink_ref(var_in[0],var_in[1],var_in[2], var_in[3])    
+            test_data = f_makkink_in(var_in[0],var_in[1],var_in[2], var_in[3])
 
             output_notebook()
             x_name = var_name[i]
