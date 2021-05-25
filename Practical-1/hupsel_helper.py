@@ -1,10 +1,20 @@
 import pandas as pd 
 import numpy as np
 from numpy import exp
-from bokeh.plotting import figure, output_file, show, output_notebook  
+from bokeh.plotting import figure, output_file, show, output_notebook, ColumnDataSource
 from bokeh.palettes import Category10
 import itertools
 import os # For reading data file
+
+# Define reasonable ranges for meteo data
+good_range_T = [273-40,273+50]
+good_range_q = [1e-4,1e-1]
+good_range_p = [900e2,1100e2]
+good_range_Kin = [0,1365]
+
+def warning(text):
+    from colorama import Fore, Back, Style
+    print(Fore.RED + text)
 
 # Function to cycle plotting colors (see https://stackoverflow.com/questions/39839409/when-plotting-with-bokeh-how-do-you-automatically-cycle-through-a-color-pallett) 
 def color_gen():
@@ -18,15 +28,28 @@ def myplot(*args):
         df_plot = True
     else:
         # Copy list of series (assuming those are the only arguments)
-        series_list=args
+        series_list = args
         df_plot = False
-        
-#    # Check arguments
-#    if (type(df)!=pd.DataFrame):
-#        print("First argument should be a Dataframe")
-#        return
+    
+    # Check if more than one bar graph is asked for
+    nbar = 0
+    for serie in series_list:
+        if (len(serie)>2):
+            if (serie[2] == '#'):
+                nbar += 1
+    if (nbar > 1):
+        print("You ask for more than one bar graph. We cannot handle that yet.")
+        return
+    
 
     if (df_plot):
+        # Check if variables are available in dataframe
+        for s in series_list:
+            for i in range(2):
+                if (s[i] not in df.columns):
+                    print("Variable %s does not exist in Dataframe"%(s[i]))
+                    return
+
         # Check if units is present as attribute of dataframe
         if ('units' not in df.attrs.keys()):
             units = pd.DataFrame(len(df.keys())*[' '], columns=[df.keys()])
@@ -41,17 +64,14 @@ def myplot(*args):
             xtype = 'linear'
         p = figure(plot_width=800, plot_height=400, 
                    x_axis_type=xtype, y_axis_type='linear',
-                   x_axis_label="%s (%s)"%(series_list[0][0], units[series_list[0][0]][0]), 
-                   y_axis_label="%s (%s)"%(series_list[0][1], units[series_list[0][1]][0]))
+                   x_axis_label="%s (%s)"%(series_list[0][0], units[series_list[0][0]]), 
+                   y_axis_label="%s (%s)"%(series_list[0][1], units[series_list[0][1]]))
 
         # Start color iterator
         color = color_gen()
-        # add a line for each series
+        
+        # Add a line for each series
         for s in series_list:
-            for i in range(2):
-                if (s[i] not in df.columns):
-                    print("Variable %s does not exist in Dataframe"%(s[i]))
-                    return
             # Plot type
             plottype='line'
             if (len(s)>2):
@@ -66,19 +86,19 @@ def myplot(*args):
                     return
             # do plot
             if (plottype == 'line'):
-                p.line(s[0],s[1], legend_label=s[1], source=df, color=next(color))
+                p.line(df[s[0]],df[s[1]], legend_label=s[1], color=next(color))
             elif (plottype == 'scatter'):
                 mycolor = color
-                p.scatter(s[0],s[1], legend_label=s[1], source=df, fill_color=next(color))
+                p.scatter(df[s[0]],df[s[1]], legend_label=s[1], fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = df[s[0]][1]-df[s[0]][0]
-                p.vbar(x=df[s[0]], top=df[s[1]], width=0.9*barwidth, legend_label=s[1], color=color)
+                p.vbar(x=df[s[0]], top=df[s[1]], width = 0.3*barwidth, \
+                       legend_label=s[1], color=next(color))
 
         show(p)
     else:
         # We assume that the lists contain data series
         output_notebook()
-        print(series_list[0][0].values[0])
         if (type(series_list[0][0].values[0]) == np.datetime64):
             xtype = 'datetime'
         else:
@@ -89,7 +109,11 @@ def myplot(*args):
         color = color_gen()
         # add a line for each series
         for s in series_list:
-            # Plot type
+            # Check that series are of equal length
+            if (len(s[0]) != len(s[1])):
+                print("Series are not of equal length: %i and %i"%(len(s[0]), len(s[1])))
+                      
+            # Plot type and color
             plottype='line'
             if (len(s)>2):
                 if (s[2] == '-'):
@@ -101,8 +125,8 @@ def myplot(*args):
                 else:
                     print("Unkown plot type: '%s'"%(s[2]))
                     return
-
             mycolor = color
+            
             # do plot
             if (plottype == 'line'):
                 p.line(s[0],s[1], color=next(color))
@@ -111,7 +135,7 @@ def myplot(*args):
                 p.scatter(s[0],s[1],  fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = s[0][1]-s[0][0]
-                p.vbar(x=s[0].values, top=s[1], width=0.9*barwidth, color=color)
+                p.vbar(x=s[0].values, top=s[1].values, width=0.9*barwidth, color=next(color))
 
         # show the results
         show(p)
@@ -157,6 +181,9 @@ def f_Lv_ref(T):
     return result   
 
 def f_Lv(T):
+    # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
+    if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
+        warning("Are you sure that the units of your temperature data are correct?")
     return f_Lv_ref(T)
     
 # Function to compute saturated vapour pressure in Pa
@@ -174,6 +201,9 @@ def f_esat_ref(T):
     
     return result
 def f_esat(T):
+    # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
+    if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
+        warning("Are you sure that the units of your temperature data are correct?")
     return f_esat_ref(T)
 
 # Function to compute slope of the saturated vapour pressure in Pa/K
@@ -188,7 +218,11 @@ def f_s_ref(T):
     result = f_esat_ref(T)*c1/(-c2+T)**2
     
     return result
+
 def f_s(T):
+    # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
+    if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
+        warning("Are you sure that the units of your temperature data are correct?")
     return f_s_ref(T)
 
 # Function to compute the psychrometer constant
@@ -207,6 +241,13 @@ def f_gamma_ref(T, p, q):
     return result  
 
 def f_gamma(T, p, q):
+    # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
+    if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
+        warning("Are you sure that the units of your temperature data are correct?")
+    if (not ((good_range_p[0] < np.array(p)) & (np.array(p) < good_range_p[1] )).all()):
+        warning("Are you sure that the units of your pressure data are correct?")
+    if (not ((good_range_q[0] < np.array(q)) & (np.array(q) < good_range_q[1] )).all()):
+        warning("Are you sure that the units of your specific humidity data are correct?")
     return f_gamma_ref(T, p, q)
     
 # Function to compute reference evapotranspiration according to Makkink
@@ -225,6 +266,15 @@ def f_makkink_ref(K_in, T, p, q):
     return result
 
 def f_makkink(K_in, T, p, q):
+    # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
+    if (not ((good_range_Kin[0] < np.array(K_in)) & (np.array(K_in) < good_range_Kin[1] )).all()):
+        warning("Are you sure that the units of your global radiation data are correct?")
+    if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
+        warning("Are you sure that the units of your temperature data are correct?")
+    if (not ((good_range_p[0] < np.array(p)) & (np.array(p) < good_range_p[1] )).all()):
+        warning("Are you sure that the units of your pressure data are correct?")
+    if (not ((good_range_q[0] < np.array(q)) & (np.array(q) < good_range_q[1] )).all()):
+        warning("Are you sure that the units of your specific humidity data are correct?")
     return f_makkink_ref(K_in, T, p, q)
 
 def checkplot(x, f_ref, f_in, x_name, f_name):
@@ -236,7 +286,7 @@ def checkplot(x, f_ref, f_in, x_name, f_name):
     show(p)
 
 def check_Lv(f_Lv_in):
-    T = np.linspace(273,273+40)
+    T = np.linspace(good_range_T[0],good_range_T[1])
     ref_data = f_Lv_ref(T)
     test_data = f_Lv_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
@@ -247,7 +297,7 @@ def check_Lv(f_Lv_in):
         checkplot(T, f_Lv_ref, f_Lv_in, 'T (K)', 'Lv (J/kg)')
         
 def check_esat(f_esat_in):
-    T = np.linspace(273,273+40)
+    T = np.linspace(good_range_T[0],good_range_T[1])
     ref_data = f_esat_ref(T)
     test_data = f_esat_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
@@ -258,7 +308,7 @@ def check_esat(f_esat_in):
         checkplot(T, f_esat_ref, f_esat_in, 'T (K)', 'esat (Pa)')
         
 def check_s(f_s_in):
-    T = np.linspace(273,273+40)
+    T = np.linspace(good_range_T[0],good_range_T[1])
     ref_data = f_s_ref(T)
     test_data = f_s_in(T)
     rms = np.sqrt(np.mean((ref_data - test_data)**2))
@@ -269,9 +319,9 @@ def check_s(f_s_in):
         checkplot(T, f_s_ref, f_s_in, 'T (K)', 's (Pa/K)')
                 
 def check_gamma(f_gamma_in):
-    T_range = np.linspace(273,273+40)
-    p_range = np.linspace(950e2,1050e2)
-    q_range = np.linspace(1e-3,40e-3)
+    T_range = np.linspace(good_range_T[0],good_range_T[1])
+    p_range = np.linspace(good_range_p[0],good_range_p[1])
+    q_range = np.linspace(good_range_q[0],good_range_q[1])
        
     var=[T_range,p_range,q_range]
     var_name = ['T', 'p', 'q']
@@ -315,10 +365,10 @@ def check_gamma(f_gamma_in):
             show(pl)
 
 def check_makkink(f_makkink_in):
-    Kin_range = np.linspace(0,900)
-    T_range = np.linspace(273,273+40)
-    p_range = np.linspace(950e2,1050e2)
-    q_range = np.linspace(1e-3,40e-3)
+    Kin_range =  np.linspace(good_range_Kin[0],good_range_Kin[1])
+    T_range = np.linspace(good_range_T[0],good_range_T[1])
+    p_range = np.linspace(good_range_p[0],good_range_p[1])
+    q_range = np.linspace(good_range_q[0],good_range_q[1])
        
     var=[Kin_range, T_range,p_range,q_range]
     var_name = ['K_in','T', 'p', 'q']
