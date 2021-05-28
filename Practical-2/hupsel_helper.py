@@ -12,9 +12,15 @@ good_range_q = [1e-4,1e-1]
 good_range_p = [900e2,1100e2]
 good_range_Kin = [0,1365]
 
-def warning(text):
+def my_warning(text):
     from colorama import Fore, Back, Style
-    print(Fore.RED + text)
+    print(Fore.MAGENTA + "Warning: " + text)
+    print(Style.RESET_ALL)
+    
+def my_error(text):
+    from colorama import Fore, Back, Style
+    print(Fore.RED + "Error: " + text)
+    print(Style.RESET_ALL)
 
 # Function to cycle plotting colors (see https://stackoverflow.com/questions/39839409/when-plotting-with-bokeh-how-do-you-automatically-cycle-through-a-color-pallett) 
 def color_gen():
@@ -57,11 +63,11 @@ def myplot(*args):
             units = df.attrs['units']
 
         # Start plot
-        output_notebook()
         if (type(df[series_list[0][0]].values[0]) == np.datetime64):
             xtype = 'datetime'
         else:
             xtype = 'linear'
+        output_notebook()
         p = figure(plot_width=800, plot_height=400, 
                    x_axis_type=xtype, y_axis_type='linear',
                    x_axis_label="%s (%s)"%(series_list[0][0], units[series_list[0][0]]), 
@@ -97,13 +103,25 @@ def myplot(*args):
 
         show(p)
     else:
-        # We assume that the lists contain data series
-        output_notebook()
+
+        # We check that the lists contain data series
+        for i in range(len(series_list)):
+            s = series_list[i]
+            # check that x and y are arrays
+            if (not ((type(s[0]) == np.ndarray) or (type(s[0]) == pd.pandas.core.series.Series)) ):
+                my_error("first variable in plot series # %i is not an array"%(i+1))
+                return
+            if (not ((type(s[1]) == np.ndarray) or (type(s[1]) == pd.pandas.core.series.Series)) ):
+                my_error("second variable in plot series # %i is not an array"%(i+1))
+                return
+      
+        # Check x-variable of first series: if it is time, we have a special x-axis
         if (type(series_list[0][0].values[0]) == np.datetime64):
             xtype = 'datetime'
         else:
             xtype = 'linear'
 
+        output_notebook()
         p = figure(plot_width=800, plot_height=400, x_axis_type=xtype)
         # Start color iterator
         color = color_gen()
@@ -183,7 +201,7 @@ def f_Lv_ref(T):
 def f_Lv(T):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
-        warning("Are you sure that the units of your temperature data are correct?")
+        my_warning("f_Lv: are you sure that the units of your temperature data are correct?")
     return f_Lv_ref(T)
     
 # Function to compute saturated vapour pressure in Pa
@@ -203,7 +221,7 @@ def f_esat_ref(T):
 def f_esat(T):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
-        warning("Are you sure that the units of your temperature data are correct?")
+        my_warning("f_esat: are you sure that the units of your temperature data are correct?")
     return f_esat_ref(T)
 
 # Function to compute slope of the saturated vapour pressure in Pa/K
@@ -222,7 +240,7 @@ def f_s_ref(T):
 def f_s(T):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
-        warning("Are you sure that the units of your temperature data are correct?")
+        my_warning("f_s: are you sure that the units of your temperature data are correct?")
     return f_s_ref(T)
 
 # Function to compute the psychrometer constant
@@ -243,11 +261,11 @@ def f_gamma_ref(T, p, q):
 def f_gamma(T, p, q):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
-        warning("Are you sure that the units of your temperature data are correct?")
+        my_warning("f_gamma: are you sure that the units of your temperature data are correct?")
     if (not ((good_range_p[0] < np.array(p)) & (np.array(p) < good_range_p[1] )).all()):
-        warning("Are you sure that the units of your pressure data are correct?")
+        my_warning("f_gamma: are you sure that the units of your pressure data are correct?")
     if (not ((good_range_q[0] < np.array(q)) & (np.array(q) < good_range_q[1] )).all()):
-        warning("Are you sure that the units of your specific humidity data are correct?")
+        my_warning("f_gamma: are you sure that the units of your specific humidity data are correct?")
     return f_gamma_ref(T, p, q)
     
 # Function to compute reference evapotranspiration according to Makkink
@@ -268,13 +286,13 @@ def f_makkink_ref(K_in, T, p, q):
 def f_makkink(K_in, T, p, q):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_Kin[0] < np.array(K_in)) & (np.array(K_in) < good_range_Kin[1] )).all()):
-        warning("Are you sure that the units of your global radiation data are correct?")
+        my_warning("f_makkink: are you sure that the units of your global radiation data are correct?")
     if (not ((good_range_T[0] < np.array(T)) & (np.array(T) < good_range_T[1] )).all()):
-        warning("Are you sure that the units of your temperature data are correct?")
+        my_warning("f_makkink: are you sure that the units of your temperature data are correct?")
     if (not ((good_range_p[0] < np.array(p)) & (np.array(p) < good_range_p[1] )).all()):
-        warning("Are you sure that the units of your pressure data are correct?")
+        my_warning("f_makkink: are you sure that the units of your pressure data are correct?")
     if (not ((good_range_q[0] < np.array(q)) & (np.array(q) < good_range_q[1] )).all()):
-        warning("Are you sure that the units of your specific humidity data are correct?")
+        my_warning("f_makkink: are you sure that the units of your specific humidity data are correct?")
     return f_makkink_ref(K_in, T, p, q)
 
 def checkplot(x, f_ref, f_in, x_name, f_name):
