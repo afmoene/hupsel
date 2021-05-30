@@ -15,10 +15,10 @@ good_range_Qnet = [-200,1200]    # W/m2
 good_range_G = [-300,500]        # W/m2
 good_range_ra = [1e-3,1000]      # s/m
 good_range_rc = [1e-3,1000]      # s/m
-good_range_u = [0,50]            # m/s
-good_range_zu = [0,300]          # m
-good_range_zT = [0,300]          # m
-good_range_d = [0,50]            # m
+good_range_u = [1e-3,50]         # m/s -> to prevent division by zero in ra
+good_range_zu = [0.5,300]        # m
+good_range_zT = [0.5,300]        # m
+good_range_d = [0,0.45]          # m -> to prevent negative (z-d)
 good_range_z0 = [1e-5,10]        # m
 good_range_z0h = [1e-6,1]        # m
 
@@ -101,7 +101,7 @@ def check_function(f_in, f_ref, f_name, var_name):
             my_error("check_function: cannot deal with functions with %i arguments"%(nargs))
             
         rms = np.sqrt(np.mean((ref_data - test_data)**2))
-        if (rms < 1e-3*ref_data.mean()):
+        if (rms < 1e-3*abs(ref_data.mean())):
             error.append(0)
         else:
             error.append(1)
@@ -694,23 +694,39 @@ def check_PM(f_PM_in):
     check_function(f_PM_in, f_PM_ref, 'Penman-Monteith', ['Q_net', "G", 'T', 'p', 'q', 'ra', 'rc'])
 
 def check_crop_factor(cf):
+    warning = 0
     if (np.sum(cf < 0)):
         my_warning("crop factors should be positive")
+        warning += 1
     if (np.sum(cf > 2)):
         my_warning("crop factors larger dan 2 are quite unlikely")
+        warning += 1
     if ( (type(cf[0]) == np.int64) | (type(cf[0]) == np.int32) ):
         my_warning("your crop factor should be a real number, not an integer")
+        warning += 1
     if (np.isnan(cf).any()):
         my_warning("your crop factor contains a not-a-number")
+        warning += 1
+    if (warning == 0):
+        print("Your values seem to be reasonable")
+      
         
 def check_ET(ET_in):
+    warning = 0
     if (np.sum(ET_in < 0)):
         my_warning("actual evapotranspiration is usually positive")
+        warning += 1
     if (np.sum(ET_in > 10)):
         my_warning("actual evapotranspiration above 10 mm/day is quite unlikely")
+        warning += 1
     if (np.mean(np.abs(ET_in)) < 1e-2):
         my_warning("your actual evapotranspiration seems quite low, check your calculation and units")
+        warning += 1
     if ( (type(ET_in[0]) == np.int64) | (type(ET_in[0]) == np.int32) ):
         my_warning("your actual evapotranspiration should be a real number, not an integer")
+        warning += 1
     if (np.isnan(ET_in).any()):
         my_warning("your actual evapotranspiration contains a not-a-number")
+        warning += 1
+    if (warning == 0):
+        print("Your values seem to be reasonable")
