@@ -168,7 +168,7 @@ def f_days_since_rain(precipitation, threshold = 0.0):
             days_since_rain[i] += days_since_rain[i-1]
     return days_since_rain
 
-def myplot(*args):
+def myplot(*args, **kwargs):
     """
 
     Flexible plot function to visualize your data 
@@ -206,6 +206,7 @@ def myplot(*args):
   
 
     """
+    # Process args
     if (type(args[0]) == pd.DataFrame):
         df = args[0]
         series_list = args[1:]
@@ -215,6 +216,17 @@ def myplot(*args):
         series_list = args
         df_plot = False
     
+    # Process kwargs
+    my_xlabel = None
+    my_ylabel = None
+    for key, value in kwargs.items():
+        if (key == 'xlabel'):
+            my_xlabel = str(value)
+        elif (key == 'ylabel'):
+            my_ylabel = str(value)
+        else:
+            my_warning("myplot: unknown keyword argument:%s"%(key))
+        
     # Check if more than one bar graph is asked for
     nbar = 0
     for serie in series_list:
@@ -246,10 +258,15 @@ def myplot(*args):
         else:
             xtype = 'linear'
         output_notebook()
+        if (not my_xlabel):
+            my_xlabel = "%s (%s)"%(series_list[0][0], units[series_list[0][0]])
+        if (not my_ylabel):
+            my_ylabel = "%s (%s)"%(series_list[0][1], units[series_list[0][1]])
+                  
         p = figure(plot_width=800, plot_height=400, 
                    x_axis_type=xtype, y_axis_type='linear',
-                   x_axis_label="%s (%s)"%(series_list[0][0], units[series_list[0][0]]), 
-                   y_axis_label="%s (%s)"%(series_list[0][1], units[series_list[0][1]]))
+                   x_axis_label=my_xlabel, 
+                   y_axis_label=my_ylabel)
 
         # Start color iterator
         color = color_gen()
@@ -268,16 +285,22 @@ def myplot(*args):
                 else:
                     print("Unkown plot type: '%s'"%(s[2]))
                     return
+                
+            # Label for legend    
+            if (len(s)>3):
+                series_label = str(s[3])
+            else:
+                series_label = s[1]
             # do plot
             if (plottype == 'line'):
-                p.line(df[s[0]],df[s[1]], legend_label=s[1], color=next(color))
+                p.line(df[s[0]],df[s[1]], legend_label=series_label, color=next(color))
             elif (plottype == 'scatter'):
                 mycolor = color
-                p.scatter(df[s[0]],df[s[1]], legend_label=s[1], fill_color=next(color))
+                p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = df[s[0]][1]-df[s[0]][0]
                 p.vbar(x=df[s[0]], top=df[s[1]], width = 0.3*barwidth, \
-                       legend_label=s[1], color=next(color))
+                       legend_label=series_label, color=next(color))
 
         show(p)
     else:
@@ -300,7 +323,9 @@ def myplot(*args):
             xtype = 'linear'
 
         output_notebook()
-        p = figure(plot_width=800, plot_height=400, x_axis_type=xtype)
+        p = figure(plot_width=800, plot_height=400, x_axis_type=xtype,
+                   x_axis_label=my_xlabel, 
+                   y_axis_label=my_ylabel)
         # Start color iterator
         color = color_gen()
         # add a line for each series
@@ -321,17 +346,23 @@ def myplot(*args):
                 else:
                     print("Unkown plot type: '%s'"%(s[2]))
                     return
+            # Label for legend    
+            if (len(s)>3):
+                series_label = str(s[3])
+            else:
+                series_label = ''
+
             mycolor = color
             
             # do plot
             if (plottype == 'line'):
-                p.line(s[0],s[1], color=next(color))
+                p.line(s[0],s[1], legend_label=series_label, color=next(color))
             elif (plottype == 'scatter'):
                 mycolor = color
-                p.scatter(s[0],s[1],  fill_color=next(color))
+                p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = s[0][1]-s[0][0]
-                p.vbar(x=s[0].values, top=s[1].values, width=0.9*barwidth, color=next(color))
+                p.vbar(x=s[0].values, top=s[1].values, legend_label=series_label, width=0.9*barwidth, color=next(color))
 
         # show the results
         show(p)
