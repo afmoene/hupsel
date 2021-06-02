@@ -5,7 +5,8 @@ from numpy import exp
 from bokeh.plotting import figure, output_file, show, output_notebook, ColumnDataSource
 from bokeh.palettes import Category10
 from bokeh.palettes import RdBu11 as Mypalette
-from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
+from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band, Range1d
+
 import itertools
 import os # For reading data file
 
@@ -18,7 +19,7 @@ good_range_Qnet = [-200,1200]    # W/m2
 good_range_G = [-300,500]        # W/m2
 good_range_ra = [1e-3,1000]      # s/m
 good_range_rc = [1e-3,1000]      # s/m
-good_range_u = [1e-3,50]         # m/s -> to prevent division by zero in ra
+good_range_u = [1e-3,50]         # m/s -> to prevent division by zero in ra; the 
 good_range_zu = [0.5,300]        # m
 good_range_zT = [0.5,300]        # m
 good_range_d = [0,0.45]          # m -> to prevent negative (z-d)
@@ -225,6 +226,8 @@ def myplot(*args, **kwargs):
     do_color_by = False
     xtype = 'linear'
     ytype = 'linear'
+    xlim = None
+    ylim = None
     for key, value in kwargs.items():
         if (key == 'xlabel'):
             my_xlabel = str(value)
@@ -251,9 +254,22 @@ def myplot(*args, **kwargs):
                 ytype = "linear"
             else:
                 my_warning("myplot: unknown value %s for keyword argument:%s"%(value, key))           
+        elif (key == 'xlim'):
+            if (not type(value) in (list, tuple)): 
+                my_error("myplot: value for keyword xlim should be a list or a tuple")
+            else:
+                xlim = tuple(value)
+        elif (key == 'ylim'):
+            if (not type(value) in (list, tuple)): 
+                my_error("myplot: value for keyword ylim should be a list or a tuple")
+            else:
+                ylim = tuple(value)
         else:
             my_warning("myplot: unknown keyword argument:%s"%(key))
-        
+    
+    # Set default scatter size
+    scatter_size = 7
+    
     # Check if more than one bar graph is asked for
     nbar = 0
     for serie in series_list:
@@ -310,7 +326,11 @@ def myplot(*args, **kwargs):
                    x_axis_type=xtype, y_axis_type=ytype,
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
-
+        if (xlim):
+            p.x_range=Range1d(xlim[0], xlim[1])
+        if (ylim):
+            p.y_range=Range1d(ylim[0], ylim[1])
+        
         # Start color iterator
         color = color_gen()
         
@@ -346,11 +366,11 @@ def myplot(*args, **kwargs):
                     data = {'x_values': my_x, 'y_values': my_y, 'c_values': my_c}
                     source = ColumnDataSource(data=data)
                     p.scatter('x_values', 'y_values', source=source, legend_label=series_label, \
-                              fill_color=colors, line_color=None)
+                              fill_color=colors, line_color=None, size=scatter_size)
                     color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0))
                     p.add_layout(color_bar, 'right')
                 else:
-                    p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color))
+                    p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color), size=scatter_size)
             elif (plottype == 'bar'):
                 barwidth = df[s[0]][1]-df[s[0]][0]
                 p.vbar(x=df[s[0]], top=df[s[1]], width = 0.3*barwidth, \
@@ -371,7 +391,7 @@ def myplot(*args, **kwargs):
                 return
       
         # Check x-variable of first series: if it is time, we have a special x-axis
-        if (type(series_list[0][0][0]) == np.datetime64):
+        if (type(series_list[0][0].values[0]) == np.datetime64):
             xtype = 'datetime'
 
         output_notebook()
@@ -395,6 +415,11 @@ def myplot(*args, **kwargs):
         p = figure(plot_width=800, plot_height=400, x_axis_type=xtype, y_axis_type=ytype,
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
+        if (xlim):
+            p.x_range=Range1d(xlim[0], xlim[1])
+        if (ylim):
+            p.y_range=Range1d(ylim[0], ylim[1])
+            
         # Start color iterator
         color = color_gen()
         # add a line for each series
@@ -435,11 +460,11 @@ def myplot(*args, **kwargs):
                     data = {'x_values': my_x, 'y_values': my_y, 'c_values': my_c}
                     source = ColumnDataSource(data=data)
                     p.scatter('x_values', 'y_values', source=source, legend_label=series_label, \
-                              fill_color=colors, line_color=None)
+                              fill_color=colors, line_color=None, size=scatter_size)
                     color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0))
                     p.add_layout(color_bar, 'right') 
                 else:
-                    p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color))
+                    p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color), size=scatter_size)
             elif (plottype == 'bar'):
                 barwidth = s[0][1]-s[0][0]
                 p.vbar(x=s[0].values, top=s[1].values, legend_label=series_label, width=0.9*barwidth, color=next(color))
@@ -688,7 +713,7 @@ def f_ra_ref(u, zu, zT, d, z0, z0h):
 
 def f_ra(u, zu, zT, d, z0, z0h):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
-    if (not ((good_range_u[0] <= np.array(u)) & (np.array(u) <= good_range_u[1] )).all()):
+    if (not ((good_range_u[0] <= abs(np.array(u))) & (abs(np.array(u)) <= good_range_u[1] )).all()):
         my_warning("f_ra: are you sure that the units of your wind speed data are correct?")
     if (not ((good_range_zu[0] <= np.array(zu)) & (np.array(zu) <= good_range_zu[1] )).all()):
         my_warning("f_ra: are you sure that the units of wind speed observation height are correct?")
@@ -917,3 +942,63 @@ def f_atm_transmissivity(date_time, latitude, longitude, K_in):
     result = np.where(np.isnan(result), result, np.minimum(result,1.0))
     
     return result
+
+def check_z0(df, z0):
+    zu = 10
+    karman = 0.4
+    my_z0 = zu / np.exp((karman*df['u_10'] / df['ustar_m'] ))
+    
+    dev = (z0-my_z0)
+    my_check = dev.median()/z0.median()
+    
+    if (abs(my_check) <= 0.1):
+        print('Your z0 values seem correct')        
+    elif (my_check > 0.1):
+        my_error('Your z0 values are probably too high') 
+    elif (my_check < -0.1):
+        my_error('Your z0 values are probably too low') 
+        
+        
+def check_rc(df_in, rc_in):
+    # Compute the canopy resistance 
+    # First determine the aerodynamic resistance with the function f_ra
+    zu = 10   # m
+    zT = 1.5  # m
+    d  = 0    # m
+    z0 = 0.02  # m (best guess from our own data)
+    z0h = 0.1*z0 # m (usually z0h is taken as 0.1 times z0)
+    ra = f_ra(df_in['u_10'], zu, zT, d, z0, z0h)
+
+    # Next collect the required other variables (temperature, vapour pressure, net radiation, ....
+    # Note that the LvE used in the equation above is the *actual* latent heat flux (i.e. the 
+    # eddy-covariance flux, available here as df['LvE_m'])
+    T = df_in['T_1_5'] + 273.15
+    p = df_in['p']*100
+    q = df_in['q']
+    s = f_s(T)
+    esat = f_esat(T)
+
+    gamma = f_gamma(T, p, q)
+    cp    = f_cp(q)
+    Qnet = df_in['Q_net_m']
+    G    = df_in['G_0_m']
+    LvE  = df_in['LvE_m']
+    ea   = df_in['e']
+    rho  = df_in['rho']
+
+    # Now compute the canopy resistance. To prevent errors it can be helpful to split the 
+    # horrible equation in a number of handy chunks.
+    numer1 = s*(Qnet - G)
+    numer2 = (rho*cp/ra)*(esat - ea)
+    my_rc = ra *( (numer1 + numer2)/(gamma*LvE) - (s/gamma) - 1)
+
+    dev = (rc_in-my_rc)
+    my_check = dev.median()/rc_in.median()
+    
+    if (abs(my_check) <= 0.05):
+        print('Your rc values seem correct')        
+    elif (my_check > 0.05):
+        my_error('Your rc values are probably too high') 
+    elif (my_check < -0.05):
+        my_error('Your rc values are probably too low')
+        
