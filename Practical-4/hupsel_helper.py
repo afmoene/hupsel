@@ -507,6 +507,9 @@ def myreadfile(fname, type='day'):
     for i in range(len(units.values[0])):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
+    # Add variables that we just constructed
+    df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
+    df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
         
     # Add description of variables
     descr = pd.read_excel(fullpath,skiprows=[0,1,2,3,5], sheet_name=sheet_name, nrows=1) 
@@ -514,6 +517,9 @@ def myreadfile(fname, type='day'):
     for i in range(len(descr.values[0])):
         descr_dict[df.keys()[i]] = descr.values[0][i]
         df.attrs['description']=descr_dict    
+    # Add variables that we just constructed
+    df.attrs['description']['TER'] = 'Estimate of terrestrial respiration'
+    df.attrs['description']['GPP'] = 'Estimate of gross primary production (approx. photosynthesis), taking positive for CO2 uptake'
 
     # Assume that we want to use the first column (datetime) as an index
     df.set_index(df.keys()[0], inplace=True, drop=False)        
@@ -993,8 +999,8 @@ def check_rc(df_in, rc_in):
     my_rc = ra *( (numer1 + numer2)/(gamma*LvE) - (s/gamma) - 1)
 
     dev = (rc_in-my_rc)
-    my_check = dev.median()/rc_in.median()
-    
+    my_check = dev.median()/my_rc.median()
+    print("Mycheck = ", my_check)
     if (abs(my_check) <= 0.05):
         print('Your rc values seem correct')        
     elif (my_check > 0.05):

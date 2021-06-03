@@ -708,7 +708,8 @@ def check_crop_factor(cf):
         my_warning("your crop factor contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable")
+        print("Your values seem to be reasonable (no obious erros in terms of incorrect number type or extreme values")
+        my_warning("This does not mean that they are correct.")
       
         
 def check_ET(ET_in):
@@ -729,4 +730,5 @@ def check_ET(ET_in):
         my_warning("your actual evapotranspiration contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable")
+        print("Your values seem to be reasonable (no obious erros in terms of incorrect number type or extreme values")
+        my_warning("This does not mean that they are correct.")
