@@ -105,7 +105,7 @@ for i in range(len(sites)):
 var_avail['Horstermeer']['PAR'] = False
 
 def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
-           color_by='air temperature', averaging='day', plot_lines = False, 
+           color_by=None, averaging='day', plot_lines = False, 
            n_lines=4, connect_points = False, plot_quant = False,
            quantile = 0.25,
            return_data = False):
