@@ -227,6 +227,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         all_data['albedo'] = all_data[varnames['K_out']].values/all_data[varnames['K_in']].values
         all_data['albedo'] = np.where((all_data['albedo'] > 1), 1,all_data['albedo']) 
         all_data['albedo'] = np.where((all_data['albedo'] < 0), 0,all_data['albedo']) 
+        all_data['bowen'] = all_data[varnames['H']].values/all_data[varnames['LE']].values
         all_data['EF'] = all_data[varnames['LE']].values/(all_data[varnames['LE']].values + all_data[varnames['H']].values)
         es = esat(Temp)
         all_data['RH'] = 100*(1-all_data['VPD_F']/(0.01*es))
