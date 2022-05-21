@@ -1,12 +1,8 @@
 import pandas as pd 
 import numpy as np
-import datetime
 from numpy import exp
 from bokeh.plotting import figure, output_file, show, output_notebook, ColumnDataSource
 from bokeh.palettes import Category10
-from bokeh.palettes import RdBu11 as Mypalette
-from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band, Range1d
-
 import itertools
 import os # For reading data file
 
@@ -19,7 +15,7 @@ good_range_Qnet = [-200,1200]    # W/m2
 good_range_G = [-300,500]        # W/m2
 good_range_ra = [1e-3,1000]      # s/m
 good_range_rc = [1e-3,1000]      # s/m
-good_range_u = [1e-3,50]         # m/s -> to prevent division by zero in ra; the 
+good_range_u = [1e-3,50]         # m/s -> to prevent division by zero in ra
 good_range_zu = [0.5,300]        # m
 good_range_zT = [0.5,300]        # m
 good_range_d = [0,0.45]          # m -> to prevent negative (z-d)
@@ -223,53 +219,14 @@ def myplot(*args, **kwargs):
     # Process kwargs
     my_xlabel = None
     my_ylabel = None
-    do_color_by = False
-    xtype = 'linear'
-    ytype = 'linear'
-    xlim = None
-    ylim = None
     for key, value in kwargs.items():
         if (key == 'xlabel'):
             my_xlabel = str(value)
         elif (key == 'ylabel'):
             my_ylabel = str(value)
-        elif (key == 'color_by'):
-            if (df_plot):
-                do_color_by = True
-                color_by = value
-            else:
-                do_color_by = True
-                color_by = value
-        elif (key == 'x_axis_type'):
-            if (value == "log"):
-                xtype = "log"
-            elif (value == "linear"):
-                xtype = "linear"
-            else:
-                my_warning("myplot: unknown value %s for keyword argument:%s"%(value, key))    
-        elif (key == 'y_axis_type'):
-            if (value == "log"):
-                ytype = "log"
-            elif (value == "linear"):
-                ytype = "linear"
-            else:
-                my_warning("myplot: unknown value %s for keyword argument:%s"%(value, key))           
-        elif (key == 'xlim'):
-            if (not type(value) in (list, tuple)): 
-                my_error("myplot: value for keyword xlim should be a list or a tuple")
-            else:
-                xlim = tuple(value)
-        elif (key == 'ylim'):
-            if (not type(value) in (list, tuple)): 
-                my_error("myplot: value for keyword ylim should be a list or a tuple")
-            else:
-                ylim = tuple(value)
         else:
             my_warning("myplot: unknown keyword argument:%s"%(key))
-    
-    # Set default scatter size
-    scatter_size = 7
-    
+        
     # Check if more than one bar graph is asked for
     nbar = 0
     for serie in series_list:
@@ -280,24 +237,7 @@ def myplot(*args, **kwargs):
         print("You ask for more than one bar graph. We cannot handle that yet.")
         return
     
-  
-    if (do_color_by):
-        # Needed?
-        range_min = 0
-        range_max = 1
-        if (range_min >= range_max):
-            range_min = range_max - 0.1 
-        if (df_plot):
-            my_c = df[color_by].values
-        else:
-            my_c = color_by
-        mapper = LinearColorMapper( palette=Mypalette, 
-                                    low=(np.nanmin(my_c)+range_min*(np.nanmax(my_c)-np.nanmin(my_c))), 
-                                    high=(np.nanmin(my_c)+range_max*(np.nanmax(my_c)-np.nanmin(my_c))))
-        colors = { 'field': 'c_values', 'transform': mapper}
 
-
-        
     if (df_plot):
         # Check if variables are available in dataframe
         for s in series_list:
@@ -315,22 +255,19 @@ def myplot(*args, **kwargs):
         # Start plot
         if (type(df[series_list[0][0]].values[0]) == np.datetime64):
             xtype = 'datetime'
+        else:
+            xtype = 'linear'
         output_notebook()
         if (not my_xlabel):
             my_xlabel = "%s (%s)"%(series_list[0][0], units[series_list[0][0]])
         if (not my_ylabel):
             my_ylabel = "%s (%s)"%(series_list[0][1], units[series_list[0][1]])
-       
-
+                  
         p = figure(plot_width=800, plot_height=400, 
-                   x_axis_type=xtype, y_axis_type=ytype,
+                   x_axis_type=xtype, y_axis_type='linear',
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
-        if (xlim):
-            p.x_range=Range1d(xlim[0], xlim[1])
-        if (ylim):
-            p.y_range=Range1d(ylim[0], ylim[1])
-        
+
         # Start color iterator
         color = color_gen()
         
@@ -359,18 +296,7 @@ def myplot(*args, **kwargs):
                 p.line(df[s[0]],df[s[1]], legend_label=series_label, color=next(color))
             elif (plottype == 'scatter'):
                 mycolor = color
-                if (do_color_by):
-                    my_x = df[s[0]].values
-                    my_y = df[s[1]].values
-                    # my_c was defined before)
-                    data = {'x_values': my_x, 'y_values': my_y, 'c_values': my_c}
-                    source = ColumnDataSource(data=data)
-                    p.scatter('x_values', 'y_values', source=source, legend_label=series_label, \
-                              fill_color=colors, line_color=None, size=scatter_size)
-                    color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0))
-                    p.add_layout(color_bar, 'right')
-                else:
-                    p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color), size=scatter_size)
+                p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = df[s[0]][1]-df[s[0]][0]
                 p.vbar(x=df[s[0]], top=df[s[1]], width = 0.3*barwidth, \
@@ -393,33 +319,13 @@ def myplot(*args, **kwargs):
         # Check x-variable of first series: if it is time, we have a special x-axis
         if (type(series_list[0][0].values[0]) == np.datetime64):
             xtype = 'datetime'
+        else:
+            xtype = 'linear'
 
         output_notebook()
-        
-        # Fix problem with autoscaling of log axis (Bokeh version May 2021)
-        if (ytype == 'log'):
-            s = series_list[0]
-            cond = np.isfinite(s[1])
-            s[0] = s[0][cond]
-            s[1] = s[1][cond]
-            if (do_color_by):
-                my_c = my_c[cond]
-        if (xtype == 'log'):
-            s = series_list[0]
-            cond = np.isfinite(s[0])
-            s[0] = s[0][cond]
-            s[1] = s[1][cond]
-            if (do_color_by):
-                my_c = my_c[cond]
-
-        p = figure(plot_width=800, plot_height=400, x_axis_type=xtype, y_axis_type=ytype,
+        p = figure(plot_width=800, plot_height=400, x_axis_type=xtype,
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
-        if (xlim):
-            p.x_range=Range1d(xlim[0], xlim[1])
-        if (ylim):
-            p.y_range=Range1d(ylim[0], ylim[1])
-            
         # Start color iterator
         color = color_gen()
         # add a line for each series
@@ -453,18 +359,7 @@ def myplot(*args, **kwargs):
                 p.line(s[0],s[1], legend_label=series_label, color=next(color))
             elif (plottype == 'scatter'):
                 mycolor = color
-                if (do_color_by):
-                    my_x = s[0][:]
-                    my_y = s[1][:]
-                    # my_c was defined before)
-                    data = {'x_values': my_x, 'y_values': my_y, 'c_values': my_c}
-                    source = ColumnDataSource(data=data)
-                    p.scatter('x_values', 'y_values', source=source, legend_label=series_label, \
-                              fill_color=colors, line_color=None, size=scatter_size)
-                    color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0))
-                    p.add_layout(color_bar, 'right') 
-                else:
-                    p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color), size=scatter_size)
+                p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color))
             elif (plottype == 'bar'):
                 barwidth = s[0][1]-s[0][0]
                 p.vbar(x=s[0].values, top=s[1].values, legend_label=series_label, width=0.9*barwidth, color=next(color))
@@ -476,50 +371,22 @@ def myreadfile(fname, type='day'):
     #teacher_dir = os.getenv('TEACHER_DIR')
     # fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
     fullpath = fname
-    
-    if (type == 'day'):
-        sheet_name = 0
-    elif (type == '30min'):
-        sheet_name = '30min Data'
-    else:
-        my_error('myreadfile: unknown data type %s'%(type))
-        
     # The dataframe that contains the data (both KNMI data and MAQ data)
-    if (type == 'day'):
-        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[1])
-    if (type == '30min'):
-        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[1])
-        df['Year'] = df['Date'].dt.year
-        df = df.rename(columns={'HH': 'Hour', 'MM': 'Minute'})
-        df['Date_start'] = pd.to_datetime(df[['Year','Month', 'Day','Hour', 'Minute']],
-                                          format="%Y%m%d%H%M")-datetime.timedelta(seconds=30*60)
-        df['Date_end'] = pd.to_datetime(df[['Year','Month', 'Day','Hour', 'Minute']],
-                                          format="%Y%m%d%H%M")
-        df['Date'] = df['Date_start'] + datetime.timedelta(seconds=15*60)
-        df['Time'] = df['Date'].dt.hour + df['Date'].dt.minute / 60.0
-        # This is not general, will not work always (used for 2014 data).
-        df['TER'] = 2.5e-7 + 0*df['FCO2_m']
-        df['GPP'] = - df['FCO2_m'] + df['TER']
+    df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=0, parse_dates=[1])
       
     # Add the units (read from row 5) as an attribute to the dataframe
-    units = pd.read_excel(fullpath,skiprows=[0,1,2,3], sheet_name=sheet_name, nrows=1) 
+    units = pd.read_excel(fullpath,skiprows=[0,1,2,3], nrows=1) 
     units_dict = {}
     for i in range(len(units.values[0])):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
-    # Add variables that we just constructed
-    df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
-    df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
         
     # Add description of variables
-    descr = pd.read_excel(fullpath,skiprows=[0,1,2,3,5], sheet_name=sheet_name, nrows=1) 
+    descr = pd.read_excel(fullpath,skiprows=[0,1,2,3,5], nrows=1) 
     descr_dict = {}
     for i in range(len(descr.values[0])):
         descr_dict[df.keys()[i]] = descr.values[0][i]
         df.attrs['description']=descr_dict    
-    # Add variables that we just constructed
-    df.attrs['description']['TER'] = 'Estimate of terrestrial respiration'
-    df.attrs['description']['GPP'] = 'Estimate of gross primary production (approx. photosynthesis), taking positive for CO2 uptake'
 
     # Assume that we want to use the first column (datetime) as an index
     df.set_index(df.keys()[0], inplace=True, drop=False)        
@@ -719,7 +586,7 @@ def f_ra_ref(u, zu, zT, d, z0, z0h):
 
 def f_ra(u, zu, zT, d, z0, z0h):
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
-    if (not ((good_range_u[0] <= abs(np.array(u))) & (abs(np.array(u)) <= good_range_u[1] )).all()):
+    if (not ((good_range_u[0] <= np.array(u)) & (np.array(u) <= good_range_u[1] )).all()):
         my_warning("f_ra: are you sure that the units of your wind speed data are correct?")
     if (not ((good_range_zu[0] <= np.array(zu)) & (np.array(zu) <= good_range_zu[1] )).all()):
         my_warning("f_ra: are you sure that the units of wind speed observation height are correct?")
@@ -734,7 +601,7 @@ def f_ra(u, zu, zT, d, z0, z0h):
     if (not ( np.array(z0h) < np.array(z0) ).all()):
         my_warniung("f_ra: roughness length for heat is usually smaller than roughness length for momentum")
 
-    return f_ra_ref(u, zu, zT, d, z0, z0h)
+    return f_ra(u, zu, zT, d, z0, z0h)
 
 # Function to compute reference evapotranspiration according to Penman_Monteith
 # Input
@@ -865,146 +732,3 @@ def check_ET(ET_in):
     if (warning == 0):
         print("Your values seem to be reasonable (no obious erros in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
-        
-def f_declination(Gamma):
-    c0 =  0.006918
-    c1 = -0.399912
-    s1 =  0.070257
-    c2 = -0.006758
-    s2 =  0.000907
-    c3 = -0.002697
-    s3 =  0.00148
-    result = c0 + c1*np.cos(Gamma) + s1*np.sin(Gamma) + \
-                  c2*np.cos(2*Gamma) + s2*np.sin(2*Gamma) + \
-                  c3*np.cos(3*Gamma) + s3*np.sin(3*Gamma)
-                   
-    return result
-
-def f_equation_of_time(Gamma):
-    a0 =  3.8197
-    c0 =  0.000075
-    c1 =  0.001868
-    s1 = -0.032077
-    c2 = -0.014615
-    s2 = -0.04089
-
-    result = a0 * (c0 + c1*np.cos(Gamma) + s1*np.sin(Gamma) + c2*np.cos(Gamma) + s2*np.cos(Gamma))
-    
-    return result
-
-def f_hour_angle(Gamma, time_UTC, long):
-    long_rad = long*2*np.pi/360
-    E_t = f_equation_of_time(Gamma)
-    
-    result = (2*np.pi/24)*(- (time_UTC + long_rad * (24/(2*np.pi)) ) - E_t ) + np.pi
-    
-    return result
-
-# date_time is a datetime value (or array) (UTC)
-# latitude in degrees
-# longitude in degrees (positive East)
-def f_cos_zenith(date_time, latitude, longitude):
-    if (type(date_time) == pd.core.series.Series):
-        doy = date_time.dt.dayofyear
-        t_UTC = date_time.dt.hour + date_time.dt.minute/60.0
-    else:
-        my_error("f_cos_zenith: does not know how to deal with date_time variable")
-
-    Gamma = 2*np.pi*(doy-1)/365
-    lat_rad = latitude*2*np.pi/360
-    long_rad = longitude*2*np.pi/360
-    hour_angle = f_hour_angle(Gamma, t_UTC, longitude)
-    decl = f_declination (Gamma)
-    result = np.sin(decl)*np.sin(lat_rad) + np.cos(decl)*np.cos(lat_rad)*np.cos(hour_angle)
-    
-    result = np.maximum(0, result)
-    return result
-
-def f_ecc_factor(date_time):
-    c0 = 1.000110
-    c1 = 0.03422
-    s1 = 0.001280
-    c2 = 0.000719
-    s2 = 0.000077
-    
-    if (type(date_time) == pd.core.series.Series):
-        doy = date_time.dt.dayofyear
-    else:
-        my_error("f_ecc_factor: does not know how to deal with date_time variable")
-        
-    Gamma = 2*np.pi*(doy-1)/365   
-    result = c0 + c1*np.cos(Gamma) + s1*np.sin(Gamma) + \
-                  c2*np.cos(2*Gamma) + s2*np.sin(2*Gamma)
-    return result
-
-def f_atm_transmissivity(date_time, latitude, longitude, K_in):
-    I0 = 1365
-    
-    K_0 = I0 * f_ecc_factor(date_time) * f_cos_zenith(date_time, latitude, longitude)
-    
-    result = K_in/K_0
-    
-    result = np.where(np.isnan(result), result, np.maximum(result,0.0))
-    result = np.where(np.isnan(result), result, np.minimum(result,1.0))
-    
-    return result
-
-def check_z0(df, z0):
-    zu = 10
-    karman = 0.4
-    my_z0 = zu / np.exp((karman*df['u_10'] / df['ustar_m'] ))
-    
-    dev = (z0-my_z0)
-    my_check = dev.median()/z0.median()
-    
-    if (abs(my_check) <= 0.1):
-        print('Your z0 values seem correct')        
-    elif (my_check > 0.1):
-        my_error('Your z0 values are probably too high') 
-    elif (my_check < -0.1):
-        my_error('Your z0 values are probably too low') 
-        
-        
-def check_rc(df_in, rc_in):
-    # Compute the canopy resistance 
-    # First determine the aerodynamic resistance with the function f_ra
-    zu = 10   # m
-    zT = 1.5  # m
-    d  = 0    # m
-    z0 = 0.02  # m (best guess from our own data)
-    z0h = 0.1*z0 # m (usually z0h is taken as 0.1 times z0)
-    ra = f_ra(df_in['u_10'], zu, zT, d, z0, z0h)
-
-    # Next collect the required other variables (temperature, vapour pressure, net radiation, ....
-    # Note that the LvE used in the equation above is the *actual* latent heat flux (i.e. the 
-    # eddy-covariance flux, available here as df['LvE_m'])
-    T = df_in['T_1_5'] + 273.15
-    p = df_in['p']*100
-    q = df_in['q']
-    s = f_s(T)
-    esat = f_esat(T)
-
-    gamma = f_gamma(T, p, q)
-    cp    = f_cp(q)
-    Qnet = df_in['Q_net_m']
-    G    = df_in['G_0_m']
-    LvE  = df_in['LvE_m']
-    ea   = df_in['e']
-    rho  = df_in['rho']
-
-    # Now compute the canopy resistance. To prevent errors it can be helpful to split the 
-    # horrible equation in a number of handy chunks.
-    numer1 = s*(Qnet - G)
-    numer2 = (rho*cp/ra)*(esat - ea)
-    my_rc = ra *( (numer1 + numer2)/(gamma*LvE) - (s/gamma) - 1)
-
-    dev = (rc_in-my_rc)
-    my_check = dev.median()/my_rc.median()
-    print("Mycheck = ", my_check)
-    if (abs(my_check) <= 0.05):
-        print('Your rc values seem correct')        
-    elif (my_check > 0.05):
-        my_error('Your rc values are probably too high') 
-    elif (my_check < -0.05):
-        my_error('Your rc values are probably too low')
-        
