@@ -488,8 +488,12 @@ def myreadfile(fname, type='day'):
     if (type == 'day'):
         df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[1])
     if (type == '30min'):
-        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[1])
+        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[0])
         df['Year'] = df['Date'].dt.year
+        # The three lines below I added to work with the data from 2011; dont know if they are general.
+        # I also changed the parse_dates above to [0] rather than [1]
+        df['Month'] = df['Date'].dt.month
+        df['Day'] = df['Date'].dt.day        
         df = df.rename(columns={'HH': 'Hour', 'MM': 'Minute'})
         df['Date_start'] = pd.to_datetime(df[['Year','Month', 'Day','Hour', 'Minute']],
                                           format="%Y%m%d%H%M")-datetime.timedelta(seconds=30*60)
