@@ -188,21 +188,35 @@ def myplot(*args, **kwargs):
     To plot more than one series in a plot, you can repeat the x/y combination in square brackets:
     myplot(df, ['varname1', 'varname2'], ['varname1', 'varname3'] )
     myplot( [x, y], [x,y2] )
-    
-    Additional documentation/exanples: 
+     
     * plot one series as a line: `myplot(df,['Date','K_in'])`. 
       The x-name and y-name are given as a list (enclosed in square brackets).
     * plot two series as lines: `myplot(df,['Date','K_in'], ['Date','K_out_m'])`. 
       The second series is also given as a list, separated from the first list with comma.
+
+    Additional options for series
+    ----------
     * plot a series with something other than a line 
        * `myplot(df,['Date','K_in','-'])`: plot a line
        * `myplot(df,['Date','K_in','o'])`: plot dots
        * `myplot(df,['Date','prec','#'])`: bar graph (only one series per graph)
-    * you can also plot series without using a dataframe (assume x, y and z are  arrays): `myplot([x,y],[x,z])`
- 
+    * give each series a name, to be used in the legend (you then also must give the plot-type)
+       * myplot(df, ['Date', 'K_in','-', 'Global radiation'], ['Date', 'K_out', 'o', 'Reflected shortwave radiation'] )
+       * myplot([time, albedo, '-', 'Surface albedo'])
 
-    Parameters
+    Additional keyword arguments
     ----------
+    xlabel, ylabel:       label on x-axis and/or y-axis 
+                          e.g. myplot( [x, y], xlabel='time (hour)', ylabel='temperature (K)')
+    color_by:             color dots based on the value of a third variable; when plotting from a dataframe, give
+                          the name of the variable, otherwise give the variable itself
+                          e.g. myplot(df, ['Date', 'LvE_m', 'o'], color_by = 'T_1_5')
+                          or   myplot([x, y, 'o'], color_by = c) 
+    x_axis_type, y_axis_type:
+                          'linear' or 'log' axis
+                          e.g. myplot([x, y, 'o'], x_axis_type = 'linear', y_axis_type = 'log') 
+    xlim, ylim:           limits for x-axis or y-axis
+                          e.g. myplot([x, y, 'o'], xlim = [0,10])
     
     Returns
     -------
@@ -545,6 +559,13 @@ def f_Lv_ref(T):
     return result   
 
 def f_Lv(T):
+    """
+    Compute latent of vapourization of water, as a function of temperature
+    Input:
+        T             : temperature (Kelvin)
+    Return:
+        latent heat of vapourization of water (J/kg)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] <= np.array(T)) & (np.array(T) <= good_range_T[1] )).all()):
         my_warning("f_Lv: are you sure that the units of your temperature data are correct?")
@@ -565,6 +586,13 @@ def f_esat_ref(T):
     
     return result
 def f_esat(T):
+    """
+    Compute saturated water vapour pressure, as a function of temperature
+    Input:
+        T             : temperature (Kelvin)
+    Return:
+        saturated water vapour pressure (Pa)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] <= np.array(T)) & (np.array(T) <= good_range_T[1] )).all()):
         my_warning("f_esat: are you sure that the units of your temperature data are correct?")
@@ -584,6 +612,13 @@ def f_s_ref(T):
     return result
 
 def f_s(T):
+    """
+    Compute the slope of the saturated water vapour pressure, as a function of temperature
+    Input:
+        T             : temperature (Kelvin)
+    Return:
+        slope of the saturated water vapour pressure (Pa/K)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] <= np.array(T)) & (np.array(T) <= good_range_T[1] )).all()):
         my_warning("f_s: are you sure that the units of your temperature data are correct?")
@@ -605,6 +640,15 @@ def f_gamma_ref(T, p, q):
     return result  
 
 def f_gamma(T, p, q):
+    """
+    Compute the psychrometer constant
+    Input:
+        T             : temperature (Kelvin)
+        p             : pressure (Pa)
+        q             : specific humidity (kg/kg)
+    Return:
+        psychrometer constant  (Pa/K)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_T[0] <= np.array(T)) & (np.array(T) <= good_range_T[1] )).all()):
         my_warning("f_gamma: are you sure that the units of your temperature data are correct?")
@@ -625,6 +669,13 @@ def f_cp_ref(q):
     return result
 
 def f_cp(q):
+    """
+    Compute the specific heat of air at constant pressure
+    Input:
+        q             : specific humidity (kg/kg)
+    Return:
+        specific heat at constant pressure (J/kg/K)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_q[0] <= np.array(q)) & (np.array(q) <= good_range_q[1] )).all()):
         my_warning("f_cp: are you sure that the units of your specific humidity data are correct?")
@@ -646,6 +697,16 @@ def f_makkink_ref(K_in, T, p, q):
     return result
 
 def f_makkink(K_in, T, p, q):
+    """
+    Compute the reference evapotranspiration akkording to the Makkink method
+    Input:
+        K_in          : global radiation (W/m2)
+        T             : temperature (K)
+        p             : pressure (Pa)
+        q             : specific humidity (kg/kg)
+    Return:
+        reference evapotranspidation according to Makkink (W/m2)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_Kin[0] <= np.array(K_in)) & (np.array(K_in) <= good_range_Kin[1] )).all()):
         my_warning("f_makkink: are you sure that the units of your global radiation data are correct?")
@@ -682,6 +743,17 @@ def f_PT_ref(Q_net, G, T, p, q):
     return result
 
 def f_PT(Q_net, G, T, p, q):
+    """
+    Ccompute reference evapotranspiration according to Priestly-Taylor
+    Input:
+       Q_net : net radiation (W/m2)
+       G     : soil heat flux (W/m2)
+       T     : temperature (Kelvin)
+       p     : pressure (Pa)
+       q     : specific humidity (kg/kg)
+    Return:
+      reference evapotranspiration according to Priestley-Taylor (W/m2)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_Qnet[0] <= np.array(Q_net)) & (np.array(Q_net) <= good_range_Qnet[1] )).all()):
         my_warning("f_PT: are you sure that the units of your net radiation data are correct?")
@@ -722,6 +794,18 @@ def f_ra_ref(u, zu, zT, d, z0, z0h):
     return result
 
 def f_ra(u, zu, zT, d, z0, z0h):
+    """
+    Compute aerodyamic resistance for neautral conditions 
+    Input:
+       u     : mean horizontal wind speed (m/s)
+       zu    : observation height of wind speed (m)
+       zT    : observation height of temperature (m)
+       d     : displacement height (m)
+       z0    : roughness length for momentum (m)
+       z0h   : roughness length for heat (m)
+    Return:
+      aerodynamic resistance for neutral conditions (s/m)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_u[0] <= abs(np.array(u))) & (abs(np.array(u)) <= good_range_u[1] )).all()):
         my_warning("f_ra: are you sure that the units of your wind speed data are correct?")
@@ -789,6 +873,19 @@ def f_PM_ref(Q_net, G, T, p, q, ra, rc):
     return result
 
 def f_PM(Q_net, G, T, p, q, ra, rc):
+    """
+    Compute reference evapotranspiration according to Penman_Monteith
+    Input:
+       Q_net : net radiation (W/m2)
+       G     : soil heat flux (W/m2)
+       T     : temperature (Kelvin)
+       p     : pressure (Pa)
+       q     : specific humidity (kg/kg)
+       ra    : aerodynamic resistance (s/m)
+       rc    : canopy resistance (s/m)
+    Return:
+       reference evapotranspiration according to Penman_Monteith (W/m2)
+    """
     # make the input variables arrays to ensure that .all() works, even if the input data is a scalar
     if (not ((good_range_Qnet[0] <= np.array(Q_net)) & (np.array(Q_net) <= good_range_Qnet[1] )).all()):
         my_warning("f_PM: are you sure that the units of your net radiation data are correct?")
@@ -908,6 +1005,15 @@ def f_hour_angle(Gamma, time_UTC, long):
 # latitude in degrees
 # longitude in degrees (positive East)
 def f_cos_zenith(date_time, latitude, longitude):
+    """
+    Compute the cosine of the solar zenith angle
+    Input:
+       date_time      : date/time variable (time stamp)
+       latitude       : geographic latitude (degree)
+       longitude      : geographic longitude (degree)
+     Return:
+       cosine of solar zenith angle
+    """
     if (type(date_time) == pd.core.series.Series):
         doy = date_time.dt.dayofyear
         t_UTC = date_time.dt.hour + date_time.dt.minute/60.0
@@ -942,7 +1048,17 @@ def f_ecc_factor(date_time):
     return result
 
 def f_atm_transmissivity(date_time, latitude, longitude, K_in):
-    I0 = 1365
+    """
+    Compute the broadband atmospheric transmissivity
+    Input:
+       date_time      : date/time variable (time stamp)
+       latitude       : geographic latitude (degree)
+       longitude      : geographic longitude (degree)
+       K_in           : global radiation (W/m2)
+    Return:
+       broadband atmospheric transmissivity (-)
+    """
+    I0 = 1365 # (W/m2)
     
     K_0 = I0 * f_ecc_factor(date_time) * f_cos_zenith(date_time, latitude, longitude)
     
@@ -1009,6 +1125,8 @@ def check_rc(df_in, rc_in):
         print('Your rc values seem correct')        
     elif (my_check > 0.05):
         my_error('Your rc values are probably too high') 
+        print('Note that we assumed that you use variable %s for wind speed, and a value of %f for the roughness length'%('u_10',z0))
     elif (my_check < -0.05):
         my_error('Your rc values are probably too low')
+        print('Note that we assumed that you use variable %s for wind speed, and a value of %f for the roughness length'%('u_10',z0))
         
