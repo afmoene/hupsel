@@ -6,7 +6,8 @@ from bokeh.plotting import figure, output_notebook, show
 from bokeh.palettes import RdBu11 as Mypalette
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
-output_notebook(INLINE)
+#output_notebook(INLINE)
+output_notebook()
 
 import warnings
 warnings.filterwarnings('ignore')
