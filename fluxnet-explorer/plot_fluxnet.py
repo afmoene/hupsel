@@ -79,6 +79,9 @@ units    =  {'timestamp':'date_time',
             'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
+# Folder for data
+data_folder='data'
+
 # Sites			
 sites     =  ['Loobos','Horstermeer','Rollesbroich', 'Hyytiala', 'LeBray', 'WalnutCreek']
 site_code =  ['NL-Loo','NL-Hor','DE-RuR', 'FI-Hyy', 'FR-LBr', 'US-Wkg']
@@ -88,6 +91,7 @@ site_range   =  ['1-3', '1-3', '1-3', '1-4', '1-4', '1-4']
 
 # Averaging periods
 aggr_methods = ['30min','day', 'month']
+
 # Constuct units consistent with the averaging periods
 aggr_units = [units.copy(), units.copy(), units.copy()]
 aggr_units[1]['NEE'] = 'gC/m2/d'
@@ -202,7 +206,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         local_units = aggr_units[0]
     site_num = sites.index(site)
     fname_old = fname
-    fname='FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_%s.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],site_range[site_num],)
+    fname=data_folder+'/'+'FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_%s.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],site_range[site_num],)
 
     # Did we change file name -> read the new file and compute derived variables
     if (fname_old != fname):
