@@ -49,7 +49,8 @@ varnames = {'timestamp':'date_time',
             'GPP': 'GPP_NT_VUT_MEAN',
             'albedo':'albedo',
             'EF':'EF',
-			'DOY':'DOY',
+            'bowen': 'bowen',
+            'DOY':'DOY',
             'ET_Makkink': 'ET_Makkink'}
 
 units    =  {'timestamp':'date_time',
@@ -76,6 +77,7 @@ units    =  {'timestamp':'date_time',
             'GPP':'umol/m2/s',
             'albedo': '-',
             'EF': '-',
+            'bowen': '-',
             'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
