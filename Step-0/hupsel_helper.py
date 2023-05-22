@@ -487,9 +487,8 @@ def myplot(*args, **kwargs):
         show(p)
     
 def myreadfile(fname, type='day'):   
-    #teacher_dir = os.getenv('TEACHER_DIR')
-    # fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
-    fullpath = fname
+    data_dir = 'data'
+    fullpath = os.path.join(data_dir, fname)
     
     if (type == 'day'):
         sheet_name = 0
