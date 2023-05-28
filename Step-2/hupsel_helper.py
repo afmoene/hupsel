@@ -486,10 +486,12 @@ def myplot(*args, **kwargs):
         # show the results
         show(p)
     
-def myreadfile(fname, type='day'):   
+def myreadfile(fname, type='day', site='Hupsel'):   
     #teacher_dir = os.getenv('TEACHER_DIR')
     # fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
     fullpath = fname
+    data_dir = 'data'
+    fullpath = os.path.join(data_dir, fname)
     
     if (type == 'day'):
         sheet_name = 0
@@ -516,8 +518,14 @@ def myreadfile(fname, type='day'):
         df['Date'] = df['Date_start'] + datetime.timedelta(seconds=15*60)
         df['Time'] = df['Date'].dt.hour + df['Date'].dt.minute / 60.0
         # This is not general, will not work always (used for 2014 data).
-        df['TER'] = 2.5e-7 + 0*df['FCO2_m']
-        df['GPP'] = - df['FCO2_m'] + df['TER']
+        if (site == 'Hupsel'):
+           df['TER'] = 2.5e-7 + 0*df['FCO2_m']
+           df['GPP'] = - df['FCO2_m'] + df['TER']
+        else:
+           df['TER_b'] = 2.5e-7 + 0*df['FCO2_b']
+           df['GPP_b'] = - df['FCO2_b'] + df['TER_b']
+           df['TER_s'] = 2.5e-7 + 0*df['FCO2_b']
+           df['GPP_s'] = - df['FCO2_s'] + df['TER_s']
       
     # Add the units (read from row 5) as an attribute to the dataframe
     units = pd.read_excel(fullpath,skiprows=[0,1,2,3], sheet_name=sheet_name, nrows=1) 
@@ -526,8 +534,14 @@ def myreadfile(fname, type='day'):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
     # Add variables that we just constructed
-    df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
-    df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
+    if (site == 'Hupsel'):
+        df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
+        df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
+    else:
+        df.attrs['units']['TER_b'] = df.attrs['units']['FCO2_b']
+        df.attrs['units']['GPP_b'] = df.attrs['units']['FCO2_b']
+        df.attrs['units']['TER_s'] = df.attrs['units']['FCO2_s']
+        df.attrs['units']['GPP_s'] = df.attrs['units']['FCO2_s']
         
     # Add description of variables
     descr = pd.read_excel(fullpath,skiprows=[0,1,2,3,5], sheet_name=sheet_name, nrows=1) 
