@@ -331,9 +331,21 @@ def myplot(*args, **kwargs):
             xtype = 'datetime'
         output_notebook()
         if (not my_xlabel):
-            my_xlabel = "%s (%s)"%(series_list[0][0], units[series_list[0][0]])
+            if (series_list[0][0] in units.keys()):
+                current_unit = units[series_list[0][0]]
+            else:
+                current_unit = ""
+            my_xlabel = "%s (%s)"%(series_list[0][0], current_unit)
+            if (len(series_list) > 1):
+                print("Warning: automatic x-axis label based on first series")
         if (not my_ylabel):
-            my_ylabel = "%s (%s)"%(series_list[0][1], units[series_list[0][1]])
+            if (series_list[0][1] in units.keys()):
+                current_unit = units[series_list[0][1]]
+            else:
+                current_unit = ""
+            my_ylabel = "%s (%s)"%(series_list[0][1], current_unit)
+            if (len(series_list) > 1):
+                print("Warning: automatic y-axis label based on first series")
        
 
         p = figure(plot_width=800, plot_height=400, 
