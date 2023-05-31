@@ -111,9 +111,9 @@ def check_function(f_in, f_ref, f_name, var_name):
             error.append(1)
                 
     if (sum(error) == 0):
-        print("Well done")
+        print("Well done 🙂 ")
     else:
-        print("Not good")
+        print("Not good 🙁 ")
         for i in range(len(var)):
             var_in = []
             for j in range(len(var)):
