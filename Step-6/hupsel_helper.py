@@ -498,9 +498,28 @@ def myplot(*args, **kwargs):
         # show the results
         show(p)
     
-def myreadfile(fname, type='day', site='Hupsel'):   
-    #teacher_dir = os.getenv('TEACHER_DIR')
-    # fullpath = os.path.join(teacher_dir, 'JHL_data', fname)
+def myreadfile(fname, type='day', site='Hupsel-MAQ'):   
+    """
+
+    Function to read various data files. 
+
+    myreadfile(fname, type=averaging_interval, site=sitename)
+
+    Input:
+        fname: name of the file (it is implicitly assumed that the file is located in a directory 'data')
+        type: averaging_interval can either be 'day' or '30min'
+        site: sitename can be:
+              'Hupsel-MAQ': combined data from KNMI and MAQ fluxes, obtained at Hupsel KNMI station
+              'Hupsel-KNMI': standard KNMI data from the Hupsel KNMI station
+              'Merken': flux observations from the Transregio experiment near Merken, Germany.
+    Output:
+        the function returns a data frame with the data. The dataframe contains additional information in the form 
+        of attributes:
+        df.attrs['units'] gives the units of the individual series (e.g. df.attrs['units']['u_10'] should give [m/s]
+        df.attrs['description'] gives a more explicit description of the variable 
+        (helpful if the variable name is a bit cryptic)
+
+    """
     fullpath = fname
     data_dir = 'data'
     fullpath = os.path.join(data_dir, fname)
@@ -530,10 +549,10 @@ def myreadfile(fname, type='day', site='Hupsel'):
         df['Date'] = df['Date_start'] + datetime.timedelta(seconds=15*60)
         df['Time'] = df['Date'].dt.hour + df['Date'].dt.minute / 60.0
         # This is not general, will not work always (used for 2014 data).
-        if (site == 'Hupsel'):
+        if (site == 'Hupsel-MAQ'):
            df['TER'] = 2.5e-7 + 0*df['FCO2_m']
            df['GPP'] = - df['FCO2_m'] + df['TER']
-        else:
+        elif (site == 'Merken'):
            df['TER_b'] = 2.5e-7 + 0*df['FCO2_b']
            df['GPP_b'] = - df['FCO2_b'] + df['TER_b']
            df['TER_s'] = 2.5e-7 + 0*df['FCO2_b']
@@ -546,10 +565,10 @@ def myreadfile(fname, type='day', site='Hupsel'):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
     # Add variables that we just constructed
-    if (site == 'Hupsel'):
+    if (site == 'Hupsel-MAQ'):
         df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
         df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
-    else:
+    elif (site == 'Merken'):
         df.attrs['units']['TER_b'] = df.attrs['units']['FCO2_b']
         df.attrs['units']['GPP_b'] = df.attrs['units']['FCO2_b']
         df.attrs['units']['TER_s'] = df.attrs['units']['FCO2_s']

@@ -111,9 +111,9 @@ def check_function(f_in, f_ref, f_name, var_name):
             error.append(1)
                 
     if (sum(error) == 0):
-        print("Well done")
+        print("Well done 🙂 ")
     else:
-        print("Not good")
+        print("Not good 🙁 ")
         for i in range(len(var)):
             var_in = []
             for j in range(len(var)):
@@ -331,9 +331,21 @@ def myplot(*args, **kwargs):
             xtype = 'datetime'
         output_notebook()
         if (not my_xlabel):
-            my_xlabel = "%s (%s)"%(series_list[0][0], units[series_list[0][0]])
+            if (series_list[0][0] in units.keys()):
+                current_unit = units[series_list[0][0]]
+            else:
+                current_unit = ""
+            my_xlabel = "%s (%s)"%(series_list[0][0], current_unit)
+            if (len(series_list) > 1):
+                print("Warning: automatic x-axis label based on first series")
         if (not my_ylabel):
-            my_ylabel = "%s (%s)"%(series_list[0][1], units[series_list[0][1]])
+            if (series_list[0][1] in units.keys()):
+                current_unit = units[series_list[0][1]]
+            else:
+                current_unit = ""
+            my_ylabel = "%s (%s)"%(series_list[0][1], current_unit)
+            if (len(series_list) > 1):
+                print("Warning: automatic y-axis label based on first series")
        
 
         p = figure(plot_width=800, plot_height=400, 
@@ -486,7 +498,29 @@ def myplot(*args, **kwargs):
         # show the results
         show(p)
     
-def myreadfile(fname, type='day'):   
+def myreadfile(fname, type='day', site='Hupsel-MAQ'):   
+    """
+
+    Function to read various data files. 
+
+    myreadfile(fname, type=averaging_interval, site=sitename)
+
+    Input:
+        fname: name of the file (it is implicitly assumed that the file is located in a directory 'data')
+        type: averaging_interval can either be 'day' or '30min'
+        site: sitename can be:
+              'Hupsel-MAQ': combined data from KNMI and MAQ fluxes, obtained at Hupsel KNMI station
+              'Hupsel-KNMI': standard KNMI data from the Hupsel KNMI station
+              'Merken': flux observations from the Transregio experiment near Merken, Germany.
+    Output:
+        the function returns a data frame with the data. The dataframe contains additional information in the form 
+        of attributes:
+        df.attrs['units'] gives the units of the individual series (e.g. df.attrs['units']['u_10'] should give [m/s]
+        df.attrs['description'] gives a more explicit description of the variable 
+        (helpful if the variable name is a bit cryptic)
+
+    """
+    fullpath = fname
     data_dir = 'data'
     fullpath = os.path.join(data_dir, fname)
     
@@ -515,8 +549,14 @@ def myreadfile(fname, type='day'):
         df['Date'] = df['Date_start'] + datetime.timedelta(seconds=15*60)
         df['Time'] = df['Date'].dt.hour + df['Date'].dt.minute / 60.0
         # This is not general, will not work always (used for 2014 data).
-        df['TER'] = 2.5e-7 + 0*df['FCO2_m']
-        df['GPP'] = - df['FCO2_m'] + df['TER']
+        if (site == 'Hupsel-MAQ'):
+           df['TER'] = 2.5e-7 + 0*df['FCO2_m']
+           df['GPP'] = - df['FCO2_m'] + df['TER']
+        elif (site == 'Merken'):
+           df['TER_b'] = 2.5e-7 + 0*df['FCO2_b']
+           df['GPP_b'] = - df['FCO2_b'] + df['TER_b']
+           df['TER_s'] = 2.5e-7 + 0*df['FCO2_b']
+           df['GPP_s'] = - df['FCO2_s'] + df['TER_s']
       
     # Add the units (read from row 5) as an attribute to the dataframe
     units = pd.read_excel(fullpath,skiprows=[0,1,2,3], sheet_name=sheet_name, nrows=1) 
@@ -525,8 +565,14 @@ def myreadfile(fname, type='day'):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
     # Add variables that we just constructed
-    df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
-    df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
+    if (site == 'Hupsel-MAQ'):
+        df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
+        df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']
+    elif (site == 'Merken'):
+        df.attrs['units']['TER_b'] = df.attrs['units']['FCO2_b']
+        df.attrs['units']['GPP_b'] = df.attrs['units']['FCO2_b']
+        df.attrs['units']['TER_s'] = df.attrs['units']['FCO2_s']
+        df.attrs['units']['GPP_s'] = df.attrs['units']['FCO2_s']
         
     # Add description of variables
     descr = pd.read_excel(fullpath,skiprows=[0,1,2,3,5], sheet_name=sheet_name, nrows=1) 
