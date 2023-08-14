@@ -336,7 +336,7 @@ def myplot(*args, **kwargs):
             my_ylabel = "%s (%s)"%(series_list[0][1], units[series_list[0][1]])
        
 
-        p = figure(plot_width=800, plot_height=400, 
+        p = figure(width=800, height=400, 
                    x_axis_type=xtype, y_axis_type=ytype,
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
@@ -425,8 +425,9 @@ def myplot(*args, **kwargs):
             s[1] = s[1][cond]
             if (do_color_by):
                 my_c = my_c[cond]
-
-        p = figure(plot_width=800, plot_height=400, x_axis_type=xtype, y_axis_type=ytype,
+				
+		# Fix problem with change in keywords: plot_width -> width and plot_height -> height (Bokeh version 3.1.1 installed on Cocalc somewhere in July 2023)
+        p = figure(width=800, height=400, x_axis_type=xtype, y_axis_type=ytype,
                    x_axis_label=my_xlabel, 
                    y_axis_label=my_ylabel)
         if (xlim):
