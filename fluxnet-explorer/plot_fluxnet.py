@@ -6,7 +6,8 @@ from bokeh.plotting import figure, output_notebook, show
 from bokeh.palettes import RdBu11 as Mypalette
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
-output_notebook(INLINE)
+#output_notebook(INLINE)
+output_notebook()
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -48,7 +49,8 @@ varnames = {'timestamp':'date_time',
             'GPP': 'GPP_NT_VUT_MEAN',
             'albedo':'albedo',
             'EF':'EF',
-			'DOY':'DOY',
+            'bowen': 'bowen',
+            'DOY':'DOY',
             'ET_Makkink': 'ET_Makkink'}
 
 units    =  {'timestamp':'date_time',
@@ -75,17 +77,23 @@ units    =  {'timestamp':'date_time',
             'GPP':'umol/m2/s',
             'albedo': '-',
             'EF': '-',
+            'bowen': '-',
             'DOY': '-',
             'ET_Makkink': 'W/m2'}
 
+# Folder for data
+data_folder='data'
+
 # Sites			
-sites     =  ['Loobos','Horstermeer','Rollesbroich']
-site_code =  ['NL-Loo','NL-Hor','DE-RuR']
-site_start_y =  [1996,2004,2011]
-site_end_y   =  [2013,2011,2014]
+sites     =  ['Loobos','Horstermeer','Rollesbroich', 'Hyytiala', 'LeBray', 'WalnutCreek']
+site_code =  ['NL-Loo','NL-Hor','DE-RuR', 'FI-Hyy', 'FR-LBr', 'US-Wkg']
+site_start_y =  [1996,2004,2011,1996,1996,2004]
+site_end_y   =  [2013,2011,2014,2014,2008, 2014]
+site_range   =  ['1-3', '1-3', '1-3', '1-4', '1-4', '1-4']
 
 # Averaging periods
 aggr_methods = ['30min','day', 'month']
+
 # Constuct units consistent with the averaging periods
 aggr_units = [units.copy(), units.copy(), units.copy()]
 aggr_units[1]['NEE'] = 'gC/m2/d'
@@ -200,7 +208,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         local_units = aggr_units[0]
     site_num = sites.index(site)
     fname_old = fname
-    fname='FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_1-3.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],)
+    fname=data_folder+'/'+'FLX_%s_FLUXNET2015_FULLSET_%s_%i-%i_%s.csv'%(site_code[site_num], period, site_start_y[site_num],site_end_y[site_num],site_range[site_num],)
 
     # Did we change file name -> read the new file and compute derived variables
     if (fname_old != fname):
