@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
-from bokeh.palettes import RdBu11 as Mypalette
+# For pallettes, see: https://cjdoris.github.io/Bokeh.jl/stable/palettes/
+from bokeh.palettes import Plasma11, Viridis11, RdBu11
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
 #output_notebook(INLINE)
@@ -13,7 +14,10 @@ import warnings
 warnings.filterwarnings('ignore')
 from IPython.core.display import display, HTML
 
-
+# all colormaps
+colormaps = {'plasma': Plasma11,
+             'viridis': Viridis11,
+             'rdbu': RdBu11}
 
 #display(HTML(r"""<style id=hide>div.input{display:none;}</style><button type="button"onclick="var myStyle = document.getElementById('hide').sheet;myStyle.insertRule('div.input{display:inherit !important;}', 0);">Show notebook cells</button>"""))
 # display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
@@ -29,7 +33,7 @@ varnames = {'timestamp':'date_time',
             'hour':'hour',
             'month':'month',
             'year':'year',
-            'air temperature':'TA_F',
+            'T_a':'TA_F',
             'K_in':'SW_IN_F',
             'K_out': 'SW_OUT',
             'L_in':'LW_IN_F',
@@ -40,24 +44,24 @@ varnames = {'timestamp':'date_time',
             'RH':'RH',
             'precipitation':'P_F',
             'u*': 'USTAR',
-            'wind speed': 'WS_F',
+            'u_speed': 'WS_F',
             'LE':'LE_CORR',
             'H': 'H_CORR',
             '[CO2]':'CO2_F_MDS',
             'NEE': 'NEE_VUT_MEAN',
-            'respiration': 'RECO_NT_VUT_MEAN',
+            'Reco': 'RECO_NT_VUT_MEAN',
             'GPP': 'GPP_NT_VUT_MEAN',
             'albedo':'albedo',
             'EF':'EF',
             'bowen': 'bowen',
             'DOY':'DOY',
-            'ET_Makkink': 'ET_Makkink'}
+            'LE_Makkink': 'LE_Makkink'}
 
 units    =  {'timestamp':'date_time',
             'hour':'-',
             'month':'-',
             'year':'-',
-            'air temperature':'C',
+            'T_a':'C',
             'K_in':'W/m2',
             'K_out': 'W/m2',
             'L_in':'W/m2',
@@ -68,18 +72,21 @@ units    =  {'timestamp':'date_time',
             'RH':'%',
             'precipitation':'mm/day',
             'u*': 'm/s',
-            'wind speed': 'm/s',
+            'u_speed': 'm/s',
             'LE':'W/m2',
             'H': 'W/m2',
             '[CO2]':'ppmV',
             'NEE':'umol/m2/s',
-            'respiration':'umol/m2/s',
+            'Reco':'umol/m2/s',
             'GPP':'umol/m2/s',
             'albedo': '-',
             'EF': '-',
             'bowen': '-',
             'DOY': '-',
-            'ET_Makkink': 'W/m2'}
+            'LE_Makkink': 'W/m2'}
+
+# Make this variable so that students can list the variable names
+var_names = varnames.keys()
 
 # Folder for data
 data_folder='data'
@@ -112,12 +119,13 @@ for i in range(len(sites)):
    var_avail[sites[i]] = avail.copy()
 var_avail['Horstermeer']['PAR'] = False
 
-def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
+def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
            color_by=None, averaging='day', plot_lines = False, 
            n_lines=4, connect_points = False, plot_quant = False,
+           colormap = "plasma",
            quantile = 0.25,
            return_data = False):
-		   
+
     """
 	
     Flexible plot function to visualize FluxNet data 
@@ -152,6 +160,11 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         If plot_lines and plot_quant: the quantile to be shown (shows the range [quantile, 1-quantile])
     connect_points: boolean (True/False)
         Connect the plotted ppints (useful when plotting a timeseries)
+    colormap: string ("plasma", "viridis", "rdbu")
+        Name of colormap:
+        * plasma (blue - purple - yellow)
+        * viridis (purple - green - yellow)
+        * rdbu (red - white - blue)
     return_data: boolean (True/False)
         Make the function return the dataset used for the plotting (all variables)
 	
@@ -178,6 +191,9 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     if (not (averaging in aggr_methods)):
         print('%s is an unknown averaging interval. Choose from %s'%(averaging,aggr_methods))
         return
+    if (not (colormap in colormaps.keys())):
+        print('%s is an unknown colormap. Choose from %s'%(colormap,colormaps.keys()))
+        return
     if (var_avail[site][x_var] == False):
         print('Variable %s is not available for site %s'%(x_var,site))
         return  
@@ -190,11 +206,14 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
     if (plot_quant & (plot_lines == False)):
         print('Cannot show quantiles if plot_lines is not set to True')
         return
-		
 
+    # Set some initial values
     fname=''
     range_min = 0
     range_max = 1
+    
+    # Intialize pallette
+    Mypalette = colormaps[colormap]
     
     # Determine components of file names
     if (averaging == 'day'):
@@ -228,10 +247,10 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
         all_data['month'] = pd.DatetimeIndex(all_data['date_time']).month
         all_data['year'] = pd.DatetimeIndex(all_data['date_time']).year
         all_data['hour'] = pd.DatetimeIndex(all_data['date_time']).hour + pd.DatetimeIndex(all_data['date_time']).minute/60
-        Temp = all_data[varnames['air temperature']]
+        Temp = all_data[varnames['T_a']]
         s = esat_slope(Temp)
         gamma = 65.5
-        all_data['ET_Makkink'] = 0.65*(s/(gamma+s))*all_data[varnames['K_in']]
+        all_data['LE_Makkink'] = 0.65*(s/(gamma+s))*all_data[varnames['K_in']]
         all_data['albedo'] = all_data[varnames['K_out']].values/all_data[varnames['K_in']].values
         all_data['albedo'] = np.where((all_data['albedo'] > 1), 1,all_data['albedo']) 
         all_data['albedo'] = np.where((all_data['albedo'] < 0), 0,all_data['albedo']) 
@@ -268,14 +287,14 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                    x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
                    y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show, toolbar_location="below",
-                   toolbar_sticky=False, x_axis_type="datetime", plot_height=500, plot_width=900)
+                   toolbar_sticky=False, x_axis_type="datetime", height=500, width=900)
         # p.toolbar.active_drag = BoxZoomTool()
     else:
         p = figure(title="%s (averaging: %s)"%(site, averaging), 
                    x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
                    y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show,toolbar_location="below",
-                   toolbar_sticky=False, plot_height=500,  plot_width=900)
+                   toolbar_sticky=False, height=500,  width=900)
         # p.toolbar.active_drag = BoxZoomTool()
     
     source = ColumnDataSource(data=data)
@@ -329,7 +348,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
 
              if (plot_quant):
                  df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
-                 source = ColumnDataSource(df.reset_index())			 
+                 source = ColumnDataSource(df.reset_index())
              palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
              p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
              if (plot_quant):
@@ -337,7 +356,7 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='air temperature',
                              fill_alpha=0.7, line_width=1, line_color='black', fill_color=Mypalette[palette_index])
                  p.add_layout(band)
     if (color_by):
-        color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title=color_by, location=(0,0))
+        color_bar = ColorBar(color_mapper=mapper, label_standoff=4,  title="%s (%s)"%(color_by, local_units[color_by]), location=(0,0))
         p.add_layout(color_bar, 'right')
     p.toolbar.active_drag = None
     show(p)
