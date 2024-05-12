@@ -151,8 +151,9 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
     averaging: string
         Averaging period of the displayed data (currenly: "month", "day", "30min")
     plot_lines: boolean (True/False)
-        Plot a fit for the relation between the x-variable and y-variable; multiple lines are drawn,
-        for multiple classes of the stratifying variable (the color_by variable)
+        Plot a fit for the relation between the x-variable and y-variable; if color_by has been defined,
+        multiple lines are drawn, for multiple classes of the stratifying variable (the color_by variable); 
+        otherwise just one line is drawn
     n_lines: integer
         If plot_lines: number of lines to fit (i.e. the number classes in which the stratifying variable is grouped)
     plot_quant: boolean (True/False)
@@ -335,7 +336,10 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
     p.scatter('x_values', 'y_values', source=source, fill_color=colors, line_color=None)
     if (connect_points):
         p.line(my_x,my_y)
-    if (color_by and plot_lines and x_var != 'timestamp' and color_by!= 'time_stamp'):
+    if ((color_by or plot_lines) and x_var != 'timestamp' and color_by!= 'time_stamp'):
+         # Also allow a single line to be drawn
+         if (plot_lines and not color_by):
+             n_lines = 1
          if (x_var =='timestamp'):
              my_x = my_x.astype(int)
          quant_step=1.0/(n_lines)
@@ -350,8 +354,11 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
              sum_y = np.zeros((n_points,), dtype=float)
              upper = np.zeros((n_points,), dtype=float)       
              lower = np.zeros((n_points,), dtype=float)
-             cond_c = (my_c > np.nanquantile(my_c, q_low[i]))* \
-                      (my_c < np.nanquantile(my_c, q_high[i]))
+             if (color_by):
+                cond_c = (my_c > np.nanquantile(my_c, q_low[i]))* \
+                         (my_c < np.nanquantile(my_c, q_high[i]))
+             else:
+                cond_c = (my_x > -np.inf)*(my_x < np.inf)
              for j in range(n_points):
                 cond_p = (my_x[cond_c] > np.nanquantile(my_x[cond_c], p_low[j]))* \
                          (my_x[cond_c] < np.nanquantile(my_x[cond_c], p_high[j]))
@@ -364,9 +371,15 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
              if (plot_quant):
                  df = pd.DataFrame(data=dict(x=sum_x, lower=lower, upper=upper)).sort_values(by="x")
                  source = ColumnDataSource(df.reset_index())
-             palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
-             p.line(sum_x, sum_y, line_width=5, line_color=Mypalette[palette_index])
+             if (color_by):
+                 palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
+                 my_line_color = Mypalette[palette_index]
+             else:
+                 my_line_color = 'black'
+             print("plot line with ", sum_x, sum_y)
+             p.line(sum_x, sum_y, line_width=5, line_color=my_line_color)
              if (plot_quant):
+                 palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
                  band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay', 
                              fill_alpha=0.7, line_width=1, line_color='black', fill_color=Mypalette[palette_index])
                  p.add_layout(band)
