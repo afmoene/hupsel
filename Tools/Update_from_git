@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Repository and folder name for Hupsel
+REPO=https://github.com/afmoene/hupsel.git
+REPODIR=hupsel
+
+if [ $# -ne 1 ]; 
+    then echo "illegal number of parameters"
+fi
+fname=$1
+
+# Check of we already have a local version of the repository
+git -C $REPODIR rev-parse 2>/dev/null
+isrepo=$?
+if [ $isrepo -ne 0 ]; then
+    git clone --no-checkout --depth=1 --no-tags $REPO
+    cd $REPODIR
+else
+    cd $REPODIR
+    git fetch $REPO
+fi
+
+# If the requested file already exsists, get the latest version and make a backup copy
+if [ -f $fname ]; then
+   git restore --staged $fname
+   git diff --quiet $fname
+   isdiff=$?
+   echo $isdiff
+   if [ $isdiff -ne 0 ];
+       then echo "Files are different, make backup"
+       made_backup=0
+       backup_nr=0
+       while [ $made_backup -ne 1 ]; do
+	  let backup_nr+=1
+	  backup_name=${fname}.$backup_nr
+	  if [ ! -f $backup_name ] ; then
+             cp $fname $backup_name
+	     made_backup=1
+	  fi
+       done
+   fi
+fi
+
+git checkout $fname
+
