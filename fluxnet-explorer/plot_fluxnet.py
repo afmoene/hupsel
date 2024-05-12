@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
 # For pallettes, see: https://cjdoris.github.io/Bokeh.jl/stable/palettes/
-from bokeh.palettes import Plasma256, Viridis256, RdBu
+from bokeh.palettes import Plasma256, Viridis256, Turbo256
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
 #output_notebook(INLINE)
@@ -17,7 +17,7 @@ from IPython.core.display import display, HTML
 # all colormaps
 colormaps = {'plasma': Plasma256,
              'viridis': Viridis256,
-             'rdbu': RdBu}
+             'turbo': Turbo256}
 
 #display(HTML(r"""<style id=hide>div.input{display:none;}</style><button type="button"onclick="var myStyle = document.getElementById('hide').sheet;myStyle.insertRule('div.input{display:inherit !important;}', 0);">Show notebook cells</button>"""))
 # display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
@@ -123,7 +123,8 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
            color_by=None, averaging='day', plot_lines = False, 
            n_lines=4, connect_points = False, plot_quant = False,
            colormap = "plasma",
-           quantile = 0.25,
+           quantile = 0.25, 
+           x_min=None, x_max=None, y_min=None, y_max=None,
            return_data = False):
 
     """
@@ -160,11 +161,13 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
         If plot_lines and plot_quant: the quantile to be shown (shows the range [quantile, 1-quantile])
     connect_points: boolean (True/False)
         Connect the plotted ppints (useful when plotting a timeseries)
-    colormap: string ("plasma", "viridis", "rdbu")
+    colormap: string ("plasma", "viridis", "turbo")
         Name of colormap:
         * plasma (blue - purple - yellow)
         * viridis (purple - green - yellow)
-        * rdbu (red - white - blue)
+        * turbo (red - green - blue)
+    x_min, x_max, y_min, y_max: flout
+        Set one or more of the axis limits (e.g. x_min=0.0)
     return_data: boolean (True/False)
         Make the function return the dataset used for the plotting (all variables)
 	
@@ -282,19 +285,31 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
     # fig=plt.figure(figsize=(9,5))
     _tools_to_show = 'box_zoom,save,pan,reset' 
 
+    my_x_range = [np.min(my_x), np.max(my_x)]
+    if (x_min != None): my_x_range[0] = x_min
+    if (x_max != None): my_x_range[1] = x_max
+    if (my_x_range[0] > my_x_range[1]):
+        print('Warning x_min > x_max: the x-axis will be inverted.') 
+
+    my_y_range = [np.min(my_y), np.max(my_y)]
+    if (y_min != None): my_y_range[0] = y_min
+    if (y_max != None): my_y_range[1] = y_max
+    if (my_y_range[0] > my_y_range[1]):
+        print('Warning y_min > y_max: the y-axis will be inverted.') 
+
     if (x_var =='timestamp'):
         p = figure(title="%s (averaging: %s)"%(site, averaging), 
                    x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
                    y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show, toolbar_location="below",
-                   toolbar_sticky=False, x_axis_type="datetime", height=500, width=900)
+                   toolbar_sticky=False, x_axis_type="datetime", height=500, width=900, x_range=my_x_range, y_range=my_y_range)
         # p.toolbar.active_drag = BoxZoomTool()
     else:
         p = figure(title="%s (averaging: %s)"%(site, averaging), 
                    x_axis_label="%s (%s)"%(x_var, local_units[x_var]), 
                    y_axis_label="%s (%s)"%(y_var, local_units[y_var]),
                    tools=_tools_to_show,toolbar_location="below",
-                   toolbar_sticky=False, height=500,  width=900)
+                   toolbar_sticky=False, height=500,  width=900, x_range=my_x_range, y_range=my_y_range)
         # p.toolbar.active_drag = BoxZoomTool()
     
     source = ColumnDataSource(data=data)
