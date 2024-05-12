@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, output_notebook, show
 # For pallettes, see: https://cjdoris.github.io/Bokeh.jl/stable/palettes/
-from bokeh.palettes import Plasma11, Viridis11, RdBu11
+from bokeh.palettes import Plasma256, Viridis256, RdBu256
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band
 from bokeh.resources import INLINE
 #output_notebook(INLINE)
@@ -15,9 +15,9 @@ warnings.filterwarnings('ignore')
 from IPython.core.display import display, HTML
 
 # all colormaps
-colormaps = {'plasma': Plasma11,
-             'viridis': Viridis11,
-             'rdbu': RdBu11}
+colormaps = {'plasma': Plasma256,
+             'viridis': Viridis256,
+             'rdbu': RdBu256}
 
 #display(HTML(r"""<style id=hide>div.input{display:none;}</style><button type="button"onclick="var myStyle = document.getElementById('hide').sheet;myStyle.insertRule('div.input{display:inherit !important;}', 0);">Show notebook cells</button>"""))
 # display(HTML(r"""<style id=hide>div.input{display:none;}</style>"""))
