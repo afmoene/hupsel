@@ -286,13 +286,13 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
     # fig=plt.figure(figsize=(9,5))
     _tools_to_show = 'box_zoom,save,pan,reset' 
 
-    my_x_range = [np.min(my_x), np.max(my_x)]
+    my_x_range = [np.nanmin(my_x), np.nanmax(my_x)]
     if (x_min != None): my_x_range[0] = x_min
     if (x_max != None): my_x_range[1] = x_max
     if (my_x_range[0] > my_x_range[1]):
         print('Warning x_min > x_max: the x-axis will be inverted.') 
 
-    my_y_range = [np.min(my_y), np.max(my_y)]
+    my_y_range = [np.nanmin(my_y), np.nanmax(my_y)]
     if (y_min != None): my_y_range[0] = y_min
     if (y_max != None): my_y_range[1] = y_max
     if (my_y_range[0] > my_y_range[1]):
