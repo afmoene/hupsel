@@ -534,7 +534,7 @@ def myreadfile(fname, type='day', site='Hupsel-MAQ'):
         
     # The dataframe that contains the data (both KNMI data and MAQ data)
     if (type == 'day'):
-        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[1])
+        df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name) # , parse_dates=[1])
     if (type == '30min'):
         df = pd.read_excel(fullpath,skiprows=[0,1,2,3,5,6], sheet_name=sheet_name, parse_dates=[0])
         df['Year'] = df['Date'].dt.year
@@ -549,7 +549,7 @@ def myreadfile(fname, type='day', site='Hupsel-MAQ'):
                                           format="%Y%m%d%H%M")
         df['Date'] = df['Date_start'] + datetime.timedelta(seconds=15*60)
         df['Time'] = df['Date'].dt.hour + df['Date'].dt.minute / 60.0
-        # This is not general, will not work always (used for 2014 data).
+        # This is not general, will not work always (used for 2014 data). In some years the FCO2_m is called FCO2
         if (site == 'Hupsel-MAQ'):
            df['TER'] = 2.5e-7 + 0*df['FCO2_m']
            df['GPP'] = - df['FCO2_m'] + df['TER']
@@ -565,7 +565,7 @@ def myreadfile(fname, type='day', site='Hupsel-MAQ'):
     for i in range(len(units.values[0])):
         units_dict[df.keys()[i]] = units.values[0][i]
         df.attrs['units']=units_dict
-    # Add variables that we just constructed
+    # Add variables that we just constructed (note that in some years the FCO2_m is called FCO2
     if (site == 'Hupsel-MAQ'):
         df.attrs['units']['TER'] = df.attrs['units']['FCO2_m']
         df.attrs['units']['GPP'] = df.attrs['units']['FCO2_m']

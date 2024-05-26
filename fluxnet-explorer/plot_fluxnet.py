@@ -376,7 +376,6 @@ def fluxplot(site='Loobos',x_var ='timestamp',y_var ='T_a',
                  my_line_color = Mypalette[palette_index]
              else:
                  my_line_color = 'black'
-             print("plot line with ", sum_x, sum_y)
              p.line(sum_x, sum_y, line_width=5, line_color=my_line_color)
              if (plot_quant):
                  palette_index = int(len(Mypalette)*((i+0.5)/(n_lines))) # Add 0.5 to ensure that the color is in the middle of the range of colored data points
