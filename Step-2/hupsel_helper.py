@@ -9,6 +9,7 @@ from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomT
 
 import itertools
 import os # For reading data file
+import inspect # To check arguments of functions
 
 # Define reasonable ranges for meteo data
 good_range_T = [273-40,273+50]   # K
@@ -68,6 +69,21 @@ def checkplot(x, f_ref, f_in, x_name, f_name):
 def check_function(f_in, f_ref, f_name, var_name):
     var=[]
     nargs = len(var_name)
+
+    f_in_args = inspect.getfullargspec(f_in).args
+    f_in_argsnum = len(f_in_args)
+    if (nargs != f_in_argsnum):
+        arglist = '('
+        for i in range(nargs):
+            arglist += var_name[i]
+            if (i < nargs-1):
+                arglist += ','
+            else:
+                arglist += ')'
+        message = "Function %s should have %i arguments, namely %s"%(f_name, nargs, arglist)
+        my_error(message)
+        return
+
     for vname in var_name:
         var_range = np.linspace( var_ranges_dict[vname][0], var_ranges_dict[vname][1] )
         var.append(var_range)
@@ -113,7 +129,7 @@ def check_function(f_in, f_ref, f_name, var_name):
     if (sum(error) == 0):
         print("Well done 🙂 ")
     else:
-        print("Not good 🙁 ")
+        my_error("Not good 🙁 ")
         for i in range(len(var)):
             var_in = []
             for j in range(len(var)):
@@ -952,26 +968,50 @@ def f_PM(Q_net, G, T, p, q, ra, rc):
 def check_ra(f_ra_in):
     check_function(f_ra_in, f_ra_ref, 'ra', ['u', 'zu', 'zT', 'd', 'z0', 'z0h'])
 
+def fcheck_ra(f_ra_in):
+    check_ra(f_ra_in)
+
 def check_Lv(f_Lv_in):
     check_function(f_Lv_in, f_Lv_ref, 'Lv', ['T'])
+
+def fcheck_Lv(f_Lv_in):
+    check_Lv(f_Lv_in)
         
 def check_esat(f_esat_in):
     check_function(f_esat_in, f_esat_ref, 'esat', ['T'])
+
+def fcheck_esat(f_esat_in):
+    check_esat(f_esat_in)
         
 def check_s(f_s_in):
     check_function(f_s_in, f_s_ref, 's', ['T'])
+
+def fcheck_s(f_s_in):
+    check_s(f_s_in)
                 
 def check_gamma(f_gamma_in):
     check_function(f_gamma_in, f_gamma_ref, 'gamma', ['T', 'p', 'q'])
+
+def fcheck_gamma(f_gamma_in):
+    check_gamma(f_gamma_in)
               
 def check_makkink(f_makkink_in):
     check_function(f_makkink_in, f_makkink_ref, 'makkink', ['K_in','T', 'p', 'q'])
+
+def fcheck_makkink(f_makkink_in):
+    check_makkink(f_makkink_in)
     
 def check_PT(f_PT_in):
     check_function(f_PT_in, f_PT_ref, 'Priestley-Taylor', ['Q_net', "G", 'T', 'p', 'q'])
 
+def fcheck_PT(f_PT_in):
+    check_PT(f_PT_in)
+
 def check_PM(f_PM_in):
     check_function(f_PM_in, f_PM_ref, 'Penman-Monteith', ['Q_net', "G", 'T', 'p', 'q', 'ra', 'rc'])
+
+def fcheck_PM(f_PM_in):
+    check_PM(f_PM_in)
 
 def check_crop_factor(cf):
     warning = 0
@@ -988,9 +1028,11 @@ def check_crop_factor(cf):
         my_warning("your crop factor contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable (no obious erros in terms of incorrect number type or extreme values")
+        print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
-      
+ 
+def vcheck_crop_factor(cf):
+    check_crop_factor(cf)
         
 def check_ET(ET_in):
     warning = 0
@@ -1010,8 +1052,11 @@ def check_ET(ET_in):
         my_warning("your actual evapotranspiration contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable (no obious erros in terms of incorrect number type or extreme values")
+        print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
+
+def vcheck_ET(ET_in):
+    check_ET(ET_in)
         
 def f_declination(Gamma):
     c0 =  0.006918
@@ -1130,7 +1175,9 @@ def check_z0(df, z0):
     elif (my_check < -0.1):
         my_error('Your z0 values are probably too low') 
         
-        
+def vcheck_z0(df,z0):
+    check_z0(df,z0)
+
 def check_rc(df_in, rc_in):
     # Compute the canopy resistance 
     # First determine the aerodynamic resistance with the function f_ra
@@ -1176,3 +1223,5 @@ def check_rc(df_in, rc_in):
         my_error('Your rc values are probably too low')
         print('Note that we assumed that you use variable %s for wind speed, and a value of %f for the roughness length'%('u_10',z0))
         
+def vcheck_rc(df_in, rc_in):
+    check_rc(df_in, rc_in)
