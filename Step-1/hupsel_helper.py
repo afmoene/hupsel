@@ -18,9 +18,6 @@ colormaps = {'plasma': Plasma256,
              'viridis': Viridis256,
              'turbo': Turbo256, 
              'colorblind': Colorblind[8]}
-# Set default
-colormap = 'turbo'
-Mypalette = colormaps[colormap]
 
 # Define reasonable ranges for meteo data
 good_range_T = [273-40,273+50]   # K
@@ -234,9 +231,11 @@ def myplot(*args, **kwargs):
     Additional keyword arguments
     ----------
     xlabel, ylabel:       label on x-axis and/or y-axis 
-                          e.g. myplot( [x, y], xlabel='time (hour)', ylabel='temperature (K)')
+                          e.g. myplot( [x, y], xlabel='time (hour)', ylabel='temperature (K)' )
+    clabel:               label next to colorbar  
+                          e.g. myplot( [x, y], color_by=c, clabel='temperature (K)' )
     color_by:             color dots based on the value of a third variable; 
-                          myplot([x, y, 'o'], color_by = c) 
+                          myplot([x, y, 'o'], color_by=c) 
     x_axis_type, y_axis_type:
                           'linear' or 'log' axis
                           e.g. myplot([x, y, 'o'], x_axis_type = 'linear', y_axis_type = 'log') 
@@ -256,6 +255,10 @@ def myplot(*args, **kwargs):
   
 
     """
+    # Set default colormap (before we might read it from the argument list)
+    colormap = 'turbo'
+    Mypalette = colormaps[colormap]
+
     # Process args
     if (type(args[0]) == pd.DataFrame):
         df = args[0]
@@ -269,16 +272,20 @@ def myplot(*args, **kwargs):
     # Process kwargs
     my_xlabel = None
     my_ylabel = None
+    my_clabel = None
     do_color_by = False
     xtype = 'linear'
     ytype = 'linear'
     xlim = None
     ylim = None
+    clim = None
     for key, value in kwargs.items():
         if (key == 'xlabel'):
             my_xlabel = str(value)
         elif (key == 'ylabel'):
             my_ylabel = str(value)
+        elif (key == 'clabel'):
+            my_clabel = str(value)
         elif (key == 'color_by'):
             if (df_plot):
                 do_color_by = True
@@ -321,6 +328,7 @@ def myplot(*args, **kwargs):
     
     # Set default scatter size
     scatter_size = 7
+
     
     # Check if more than one bar graph is asked for
     nbar = 0
@@ -544,7 +552,7 @@ def myplot(*args, **kwargs):
                     source = ColumnDataSource(data=data)
                     p.scatter('x_values', 'y_values', source=source, legend_label=series_label, \
                               fill_color=colors, line_color=None, size=scatter_size)
-                    color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0))
+                    color_bar = ColorBar(color_mapper=mapper, label_standoff=4, location=(0,0), title=my_clabel)
                     p.add_layout(color_bar, 'right') 
                 else:
                     p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color), size=scatter_size)
@@ -1217,6 +1225,17 @@ def check_v_crop_factor(v_cf_in):
         None
     """
     check_crop_factor(v_cf_in)
+
+def check_v_csm_factor(v_csm_in):
+    """
+    Check if your values for the Crop-Stress-Method (CSM) factor make sense
+
+    Input:
+        v_csm_in           : your values for the csm factor (-)
+    Return:
+        None
+    """
+    check_crop_factor(v_csm_in)
         
 def check_ET(ET_in):
     warning = 0
