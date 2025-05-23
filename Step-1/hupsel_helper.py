@@ -3,6 +3,8 @@ import numpy as np
 import datetime
 from numpy import exp
 from bokeh.plotting import figure, output_file, show, output_notebook, ColumnDataSource
+# For pallettes, see: https://cjdoris.github.io/Bokeh.jl/stable/palettes/
+from bokeh.palettes import Plasma256, Viridis256, Turbo256, Colorblind
 from bokeh.palettes import Category10
 from bokeh.palettes import RdBu11 as Mypalette
 from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomTool, Band, Range1d
@@ -10,6 +12,15 @@ from bokeh.models import ColorBar, LinearColorMapper, ColumnDataSource, BoxZoomT
 import itertools
 import os # For reading data file
 import inspect # To check arguments of functions
+
+# all colormaps
+colormaps = {'plasma': Plasma256,
+             'viridis': Viridis256,
+             'turbo': Turbo256, 
+             'colorblind': Colorblind[8]}
+# Set default
+colormap = 'turbo'
+Mypalette = colormaps[colormap]
 
 # Define reasonable ranges for meteo data
 good_range_T = [273-40,273+50]   # K
@@ -193,46 +204,50 @@ def myplot(*args, **kwargs):
 
     Flexible plot function to visualize your data 
 
-    There are two major ways to invoke the function: with and without a Pandas dataframe:
+    You invoke the function as follows:
     
-    myplot(df, ['varname1', 'varname2'] )
-        This will use data from the dataframe df to plot. The variable 'varname1' will be used
-        as the x-variable, variable 'varname2' will be used as the y-variable.
     myplot( [x, y] )
-        The will use the data contained in variables x and y (arrays) to plot
+   
+    The function will use the data contained in variables x and y (arrays) to plot
     
     To plot more than one series in a plot, you can repeat the x/y combination in square brackets:
-    myplot(df, ['varname1', 'varname2'], ['varname1', 'varname3'] )
     myplot( [x, y], [x,y2] )
      
-    * plot one series as a line: `myplot(df,['Date','K_in'])`. 
-      The x-name and y-name are given as a list (enclosed in square brackets).
-    * plot two series as lines: `myplot(df,['Date','K_in'], ['Date','K_out_m'])`. 
+    * plot one series as a line: `myplot([ df['Date'],df['K_in'] ])`. 
+      The x-variable and y-variable are given as a list (enclosed in square brackets). 
+      These can be variables from a dataframe, but also variables that you defined.
+    * plot two series as lines: `myplot([ df['Date'],df['K_in'] ], [df['Date'],df['K_out_m'] ])`. 
       The second series is also given as a list, separated from the first list with comma.
 
     Additional options for series
     ----------
     * plot a series with something other than a line 
-       * `myplot(df,['Date','K_in','-'])`: plot a line
-       * `myplot(df,['Date','K_in','o'])`: plot dots
-       * `myplot(df,['Date','prec','#'])`: bar graph (only one series per graph)
+       * myplot([ df['Date'], df['K_in'], '-' ]): plot a line
+       * myplot([ df['Date'], df['K_in'], 'o' ]): plot dots
+       * myplot([ df['Date'], df['prec'], '#' ]): bar graph (only one series per graph)
+       * myplot([ df['Date'], df['prec'], 'o- ]): plot line and dot 
     * give each series a name, to be used in the legend (you then also must give the plot-type)
-       * myplot(df, ['Date', 'K_in','-', 'Global radiation'], ['Date', 'K_out', 'o', 'Reflected shortwave radiation'] )
+       * myplot([ df['Date'], df['K_in'], '-', 'Global radiation' ], [d f['Date'], df['K_out'], 'o', 'Reflected shortwave radiation' ] )
        * myplot([time, albedo, '-', 'Surface albedo'])
 
     Additional keyword arguments
     ----------
     xlabel, ylabel:       label on x-axis and/or y-axis 
                           e.g. myplot( [x, y], xlabel='time (hour)', ylabel='temperature (K)')
-    color_by:             color dots based on the value of a third variable; when plotting from a dataframe, give
-                          the name of the variable, otherwise give the variable itself
-                          e.g. myplot(df, ['Date', 'LvE_m', 'o'], color_by = 'T_1_5')
-                          or   myplot([x, y, 'o'], color_by = c) 
+    color_by:             color dots based on the value of a third variable; 
+                          myplot([x, y, 'o'], color_by = c) 
     x_axis_type, y_axis_type:
                           'linear' or 'log' axis
                           e.g. myplot([x, y, 'o'], x_axis_type = 'linear', y_axis_type = 'log') 
     xlim, ylim:           limits for x-axis or y-axis
                           e.g. myplot([x, y, 'o'], xlim = [0,10])
+    colormap:             string ("plasma", "viridis", "turbo")
+                          Name of colormap:
+                          * turbo (red - green - blue) (default) colormap
+                          * plasma (blue - purple - yellow)
+                          * viridis (purple - green - yellow)
+                          * colorblind (colormap with 8 colors, optimized for people with colour blindness)
+                          e.g. myplot([x, y, 'o'], color_by = df['K_in_m'] , colormap='colorblind')
     
     Returns
     -------
@@ -294,6 +309,12 @@ def myplot(*args, **kwargs):
                 my_error("myplot: value for keyword ylim should be a list or a tuple")
             else:
                 ylim = tuple(value)
+        elif (key == 'colormap'):
+            if (not (value in colormaps.keys())):
+                print('myplot: %s is an unknown colormap. Choose from %s'%(value,colormaps.keys()))
+                return
+            else:
+                colormap = value
         else:
             my_warning("myplot: unknown keyword argument:%s"%(key))
     
@@ -312,6 +333,9 @@ def myplot(*args, **kwargs):
     
   
     if (do_color_by):
+        # Intialize pallette
+        Mypalette = colormaps[colormap]
+
         # Needed?
         range_min = 0
         range_max = 1
@@ -329,6 +353,9 @@ def myplot(*args, **kwargs):
 
         
     if (df_plot):
+        print("We should no longer arrive here, please read the instructions for this function")
+        return
+
         # Check if variables are available in dataframe
         for s in series_list:
             for i in range(2):
@@ -380,11 +407,14 @@ def myplot(*args, **kwargs):
         for s in series_list:
             # Plot type
             plottype='line'
+            print("we try to plot '%s'"%(s[2]))
             if (len(s)>2):
                 if (s[2] == '-'):
                     plottype = 'line'
                 elif (s[2] == 'o'):
                     plottype = 'scatter'
+                elif ((s[2] == 'o-') | (s[2] == '-o')):
+                    plottype = 'line-dot'
                 elif (s[2] == '#'):
                     plottype = 'bar'
                 else:
@@ -399,6 +429,9 @@ def myplot(*args, **kwargs):
             # do plot
             if (plottype == 'line'):
                 p.line(df[s[0]],df[s[1]], legend_label=series_label, color=next(color))
+            if (plottype == 'line-dot'):
+                p.line(df[s[0]],df[s[1]], legend_label=series_label, color=next(color))
+                p.scatter(df[s[0]],df[s[1]], legend_label=series_label, fill_color=next(color), size=scatter_size)
             elif (plottype == 'scatter'):
                 mycolor = color
                 if (do_color_by):
@@ -478,6 +511,8 @@ def myplot(*args, **kwargs):
                     plottype = 'line'
                 elif (s[2] == 'o'):
                     plottype = 'scatter'
+                elif ((s[2] == 'o-') | (s[2] == '-o')):
+                    plottype = 'line-dot'
                 elif (s[2] == '#'):
                     plottype = 'bar'
                 else:
@@ -494,6 +529,10 @@ def myplot(*args, **kwargs):
             # do plot
             if (plottype == 'line'):
                 p.line(s[0],s[1], legend_label=series_label, color=next(color))
+            elif (plottype == 'line-dot'):
+                mycolor = next(color)
+                p.line(s[0],s[1], legend_label=series_label, color=mycolor)
+                p.scatter(s[0], s[1], fill_color=mycolor, line_color=None, size=scatter_size)
             elif (plottype == 'scatter'):
                 mycolor = color
                 if (do_color_by):
@@ -965,53 +1004,189 @@ def f_PM(Q_net, G, T, p, q, ra, rc):
         my_warning("f_PM: are you sure that the units of your canopy resistance data are correct?")    
     return f_PM_ref(Q_net, G, T, p, q, ra, rc)
 
-def check_ra(f_ra_in):
+def check_f_ra(f_ra_in):
+    """
+    Check if your function for aerodynamic resistance is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_ra_in           : your function
+    Return:
+        None
+    """
     check_function(f_ra_in, f_ra_ref, 'ra', ['u', 'zu', 'zT', 'd', 'z0', 'z0h'])
 
-def fcheck_ra(f_ra_in):
-    check_ra(f_ra_in)
+#def check_v_ra(v_ra_in):
+#    """
+#    Check if your values for aerodynamic resistance are correct
+#
+#    Input:
+#        v_ra_in           : your values for aerodynamic resistance (s/m)
+#    Return:
+#        None
+#    """
+#    check_ra(v_ra_in)
 
-def check_Lv(f_Lv_in):
+def check_f_Lv(f_Lv_in):
+    """
+    Check if your function for Lv is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_Lv_in           : your function
+    Return:
+        None
+    """
     check_function(f_Lv_in, f_Lv_ref, 'Lv', ['T'])
 
-def fcheck_Lv(f_Lv_in):
-    check_Lv(f_Lv_in)
+#def check_v_Lv(v_Lv_in):
+#    """
+#    Check if your values for Lv are correct
+#
+#    Input:
+#        v_Lv_in           : your values for Lv (J / kg)
+#    Return:
+#        None
+#    """
+#    check_Lv(v_Lv_in)
         
-def check_esat(f_esat_in):
+def check_f_esat(f_esat_in):
+    """
+    Check if your function for saturated vapour pressure is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_esat_in           : your function
+    Return:
+        None
+    """
     check_function(f_esat_in, f_esat_ref, 'esat', ['T'])
 
-def fcheck_esat(f_esat_in):
-    check_esat(f_esat_in)
+#def check_v_esat(v_esat_in):
+#    """
+#    Check if your values for saturated vapour pressure are correct
+#
+#    Input:
+#        v_esat_in           : your values for esat (Pa)
+#    Return:
+#        None
+#    """
+#    check_esat(v_esat_in)
         
-def check_s(f_s_in):
+def check_f_s(f_s_in):
+    """
+    Check if your function for the slope of saturated vapour pressure is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_s_in           : your function
+    Return:
+        None
+    """
     check_function(f_s_in, f_s_ref, 's', ['T'])
 
-def fcheck_s(f_s_in):
-    check_s(f_s_in)
+#def check_v_s(v_s_in):
+#    """
+#    Check if your values for the slope of saturated vapour pressure are correct
+#
+#    Input:
+#        v_s_in           : your values for s (Pa/K)
+#    Return:
+#        None
+#    """
+#    check_s(v_s_in)
                 
-def check_gamma(f_gamma_in):
+def check_f_gamma(f_gamma_in):
+    """
+    Check if your function for gamma (psychrometer constant) is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_gamma_in           : your function
+    Return:
+        None
+    """
     check_function(f_gamma_in, f_gamma_ref, 'gamma', ['T', 'p', 'q'])
 
-def fcheck_gamma(f_gamma_in):
-    check_gamma(f_gamma_in)
+#def check_v_gamma(v_gamma_in):
+#    """
+#    Check if your values for gamma (psychrometer constant) are correct
+#
+#    Input:
+#        v_gamma_in           : your values for gamma (Pa/K)
+#    Return:
+#        None
+#    """
+#    check_gamma(v_gamma_in)
               
-def check_makkink(f_makkink_in):
+def check_f_makkink(f_makkink_in):
+    """
+    Check if your function for Makkink LEref is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_makkink_in           : your function
+    Return:
+        None
+    """
     check_function(f_makkink_in, f_makkink_ref, 'makkink', ['K_in','T', 'p', 'q'])
 
-def fcheck_makkink(f_makkink_in):
-    check_makkink(f_makkink_in)
+#def check_v_makkink(v_makkink_in):
+#    """
+#    Check if your values for Makkink LEref (in W/m2 !) is correct
+#
+#    Input:
+#        v_makkink_in           : your values for Makkink LEref (in W/m2)
+#    Return:
+#        None
+#    """
+#    check_makkink(v_makkink_in)
     
-def check_PT(f_PT_in):
+def check_f_PT(f_PT_in):
+    """
+    Check if your function for Priestley-Taylor LEref is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_PT_in           : your function
+    Return:
+        None
+    """
     check_function(f_PT_in, f_PT_ref, 'Priestley-Taylor', ['Q_net', "G", 'T', 'p', 'q'])
 
-def fcheck_PT(f_PT_in):
-    check_PT(f_PT_in)
+#def check_v_PT(f_PT_in):
+#    """
+#    Check if your values for Priestley-Taylor LEref are correct
+#
+#    Input:
+#        v_PT_in           : your values for Priestley-Taylor LEref (in W/m2)
+#    Return:
+#        None
+#    """
+#    check_PT(v_PT_in)
 
-def check_PM(f_PM_in):
+def check_f_PM(f_PM_in):
+    """
+    Check if your function for Penman-Monteith LEref is correct
+    Both the number of arguments and the behaviour of the function is tested
+
+    Input:
+        f_PM_in           : your function
+    Return:
+        None
+    """
     check_function(f_PM_in, f_PM_ref, 'Penman-Monteith', ['Q_net', "G", 'T', 'p', 'q', 'ra', 'rc'])
 
-def fcheck_PM(f_PM_in):
-    check_PM(f_PM_in)
+#def check_v_PM(v_PM_in):
+#    """
+#    Check if your values for Penman-Monteith LEref are correct
+#
+#    Input:
+#        v_PM_in           : your valuesfor P-M LEref (in W/m2)
+#    Return:
+#        None
+#    """
+#    check_PM(v_PM_in)
 
 def check_crop_factor(cf):
     warning = 0
@@ -1031,8 +1206,16 @@ def check_crop_factor(cf):
         print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
  
-def vcheck_crop_factor(cf):
-    check_crop_factor(cf)
+def check_v_crop_factor(v_cf_in):
+    """
+    Check if your values for the crop factor make sense
+
+    Input:
+        v_cf_in           : your values for the crop factor (-)
+    Return:
+        None
+    """
+    check_crop_factor(v_cf_in)
         
 def check_ET(ET_in):
     warning = 0
@@ -1055,8 +1238,16 @@ def check_ET(ET_in):
         print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
 
-def vcheck_ET(ET_in):
-    check_ET(ET_in)
+def check_v_ET(v_ET_in):
+    """
+    Check if your values for the actual ET (in mm/day !) make sense
+
+    Input:
+        v_ET_in           : your values for actual ET (in mm/day)
+    Return:
+        None
+    """
+    check_ET(v_ET_in)
         
 def f_declination(Gamma):
     c0 =  0.006918
@@ -1175,7 +1366,7 @@ def check_z0(df, z0):
     elif (my_check < -0.1):
         my_error('Your z0 values are probably too low') 
         
-def vcheck_z0(df,z0):
+def check_v_z0(df,z0):
     check_z0(df,z0)
 
 def check_rc(df_in, rc_in):
@@ -1223,5 +1414,5 @@ def check_rc(df_in, rc_in):
         my_error('Your rc values are probably too low')
         print('Note that we assumed that you use variable %s for wind speed, and a value of %f for the roughness length'%('u_10',z0))
         
-def vcheck_rc(df_in, rc_in):
+def check_v_rc(df_in, rc_in):
     check_rc(df_in, rc_in)
