@@ -67,7 +67,8 @@ def my_error(text):
 
 # Function to cycle plotting colors (see https://stackoverflow.com/questions/39839409/when-plotting-with-bokeh-how-do-you-automatically-cycle-through-a-color-pallett) 
 def color_gen():
-    yield from itertools.cycle(Category10[10])
+    #yield from itertools.cycle(Category10[10])
+    yield from itertools.cycle(Colorblind[8])
 
 def checkplot(x, f_ref, f_in, x_name, f_name):
     output_notebook()
@@ -528,11 +529,11 @@ def myplot(*args, **kwargs):
             
             # do plot
             if (plottype == 'line'):
-                p.line(s[0],s[1], legend_label=series_label, color=next(color))
+                p.line(s[0],s[1], legend_label=series_label, line_width=2, color=next(color))
             elif (plottype == 'line-dot'):
                 mycolor = next(color)
-                p.line(s[0],s[1], legend_label=series_label, color=mycolor)
-                p.scatter(s[0], s[1], fill_color=mycolor, line_color=None, size=scatter_size)
+                p.line(s[0],s[1], legend_label=series_label, line_width=2, color=mycolor)
+                p.scatter(s[0], s[1], legend_label=series_label, fill_color=mycolor, line_color=None, size=scatter_size)
             elif (plottype == 'scatter'):
                 mycolor = color
                 if (do_color_by):
