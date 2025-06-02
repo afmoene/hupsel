@@ -1436,3 +1436,42 @@ def check_rc(df_in, rc_in):
         
 def check_v_rc(df_in, rc_in):
     check_rc(df_in, rc_in)
+
+def f_rc(df_in):
+    """
+      compute canopy resistance from data in dataframe (with known variable names)
+      return value: canopy resistance in s/m
+    """
+    # Compute the canopy resistance 
+    # First determine the aerodynamic resistance with the function f_ra
+    zu = 10   # m
+    zT = 1.5  # m
+    d  = 0    # m
+    z0 = 0.02  # m (best guess from our own data)
+    z0h = 0.1*z0 # m (usually z0h is taken as 0.1 times z0)
+    ra = f_ra(df_in['u_10'], zu, zT, d, z0, z0h)
+
+    # Next collect the required other variables (temperature, vapour pressure, net radiation, ....
+    # Note that the LvE used in the equation above is the *actual* latent heat flux (i.e. the 
+    # eddy-covariance flux, available here as df['LvE_m'])
+    T = df_in['T_1_5'] + 273.15
+    p = df_in['p']*100
+    q = df_in['q']
+    s = f_s(T)
+    esat = f_esat(T)
+
+    gamma = f_gamma(T, p, q)
+    cp    = f_cp(q)
+    Qnet = df_in['Q_net_m']
+    G    = df_in['G_0_m']
+    LvE  = df_in['LvE_m']
+    ea   = df_in['e']
+    rho  = df_in['rho']
+
+    # Now compute the canopy resistance. To prevent errors it can be helpful to split the 
+    # horrible equation in a number of handy chunks.
+    numer1 = s*(Qnet - G)
+    numer2 = (rho*cp/ra)*(esat - ea)
+    my_rc = ra *( (numer1 + numer2)/(gamma*LvE) - (s/gamma) - 1)
+
+    return my_rc
