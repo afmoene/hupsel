@@ -557,7 +557,7 @@ def myplot(*args, **kwargs):
                 else:
                     p.scatter(s[0],s[1], legend_label=series_label, fill_color=next(color), size=scatter_size)
             elif (plottype == 'bar'):
-                barwidth = s[0][1]-s[0][0]
+                barwidth = s[0].iloc[1]-s[0].iloc[0]
                 p.vbar(x=s[0].values, top=s[1].values, legend_label=series_label, width=0.9*barwidth, color=next(color))
 
         # show the results
