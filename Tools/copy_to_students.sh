@@ -8,11 +8,12 @@ TEST_STUDENT=user001
 # ──────────────────────────────────────────────────────────────────────────────
 
 usage() {
-    echo "Usage: $0 <path> [--dry-run] [--test]"
+    echo "Usage: $0 <path> [--dry-run] [--force] [--test]"
     echo ""
     echo "  <path>      Folder name or relative file path inside BASE_DIR"
     echo "              e.g. 'Step-0' or 'Step-0/hupsel_helper.py'"
     echo "  --dry-run   Show what would happen, without copying anything"
+    echo "  --force     Overwrite existing files without backup (warns but proceeds)"
     echo "  --test      Only run for ${TEST_STUDENT}"
     exit 1
 }
@@ -50,12 +51,14 @@ deploy_file() {
 
 # ── Parse arguments ────────────────────────────────────────────────────────────
 DRY_RUN=false
+FORCE=false
 TEST_MODE=false
 ARG=""
 
 for arg in "$@"; do
     case $arg in
         --dry-run) DRY_RUN=true ;;
+        --force)   FORCE=true ;;
         --test)    TEST_MODE=true ;;
         -*)        echo "Unknown option: $arg"; usage ;;
         *)         ARG="$arg" ;;
@@ -89,11 +92,13 @@ echo "Source : $SOURCE"
 echo "Target : $COURSE_DIR/<student>/atm_fluxes/$ARG"
 echo "Students: ${#STUDENTS[@]}"
 $DRY_RUN  && echo "Run    : DRY-RUN (no files will be copied)"
+$FORCE    && echo "Run    : FORCE (existing files will be overwritten without backup)"
 $TEST_MODE && echo "Run    : TEST (${TEST_STUDENT} only)"
 echo "──────────────────────────────────────────────────"
 
 # ── Main loop ──────────────────────────────────────────────────────────────────
 BACKED_UP=0
+OVERWRITTEN=0
 SKIPPED=0
 COPIED=0
 ERRORS=0
@@ -113,16 +118,26 @@ for student in "${STUDENTS[@]}"; do
     if [ "$MODE" = "file" ]; then
         # ── Single file ──────────────────────────────────────────────────────
         if [ -f "$DEST" ]; then
-            backup="$(next_backup "$DEST")"
-            if $DRY_RUN; then
-                echo "  BACKUP (dry-run): $(basename "$DEST") -> $(basename "$backup")"
-                echo "  COPY   (dry-run): $(basename "$ARG")"
+            if $FORCE; then
+                if $DRY_RUN; then
+                    echo "  OVERWRITE (dry-run): $(basename "$ARG")"
+                else
+                    deploy_file "$SOURCE" "$DEST" "$student"
+                    echo "  OVERWRITE: $(basename "$ARG")"
+                fi
+                (( OVERWRITTEN++ ))
             else
-                cp "$DEST" "$backup"
-                setfacl -m "user:${student}:rw-" "$backup"
-                echo "  BACKUP: $(basename "$DEST") -> $(basename "$backup")"
-                deploy_file "$SOURCE" "$DEST" "$student"
-                echo "  COPY: $(basename "$ARG")"
+                backup="$(next_backup "$DEST")"
+                if $DRY_RUN; then
+                    echo "  BACKUP (dry-run): $(basename "$DEST") -> $(basename "$backup")"
+                    echo "  COPY   (dry-run): $(basename "$ARG")"
+                else
+                    cp "$DEST" "$backup"
+                    setfacl -m "user:${student}:rw-" "$backup"
+                    echo "  BACKUP: $(basename "$DEST") -> $(basename "$backup")"
+                    deploy_file "$SOURCE" "$DEST" "$student"
+                    echo "  COPY: $(basename "$ARG")"
+                fi
                 (( BACKED_UP++ ))
             fi
         else
@@ -142,8 +157,18 @@ for student in "${STUDENTS[@]}"; do
             dest_file="${DEST}/${rel}"
 
             if [ -f "$dest_file" ]; then
-                echo "  SKIP (exists): $rel"
-                (( SKIPPED++ ))
+                if $FORCE; then
+                    if $DRY_RUN; then
+                        echo "  OVERWRITE (dry-run): $rel"
+                    else
+                        deploy_file "$src_file" "$dest_file" "$student"
+                        echo "  OVERWRITE: $rel"
+                    fi
+                    (( OVERWRITTEN++ ))
+                else
+                    echo "  SKIP (exists): $rel"
+                    (( SKIPPED++ ))
+                fi
             else
                 if $DRY_RUN; then
                     echo "  COPY (dry-run): $rel"
@@ -163,8 +188,11 @@ done
 
 # ── Summary footer ─────────────────────────────────────────────────────────────
 echo "──────────────────────────────────────────────────"
-$DRY_RUN && echo "Files that would be copied : $COPIED"
-$DRY_RUN || echo "Files copied               : $COPIED"
-[ "$MODE" = "file" ] && echo "Files backed up            : $BACKED_UP"
-echo "Files skipped (existed)    : $SKIPPED"
-echo "Students with errors       : $ERRORS"
+$DRY_RUN && echo "Files that would be copied      : $COPIED"
+$DRY_RUN || echo "Files copied                    : $COPIED"
+$DRY_RUN && echo "Files that would be overwritten : $OVERWRITTEN"
+$DRY_RUN || echo "Files overwritten               : $OVERWRITTEN"
+$DRY_RUN && [ "$MODE" = "file" ] && ! $FORCE && echo "Files that would be backed up   : $BACKED_UP"
+$DRY_RUN || { [ "$MODE" = "file" ] && ! $FORCE && echo "Files backed up                 : $BACKED_UP"; }
+echo "Files skipped (existed)         : $SKIPPED"
+echo "Students with errors            : $ERRORS"
