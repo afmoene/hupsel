@@ -1212,7 +1212,7 @@ def check_crop_factor(cf):
         my_warning("your crop factor contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
+        print("Your values seem to be reasonable (no obvious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
  
 def check_v_crop_factor(v_cf_in):

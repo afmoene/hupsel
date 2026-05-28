@@ -1205,14 +1205,14 @@ def check_crop_factor(cf):
     if (np.sum(cf > 2)):
         my_warning("crop factors larger dan 2 are quite unlikely")
         warning += 1
-    if ( (type(cf[0]) == np.int64) | (type(cf[0]) == np.int32) ):
+    if ( (type(cf.iloc[0]) == np.int64) | (type(cf.iloc[0]) == np.int32) ):
         my_warning("your crop factor should be a real number, not an integer")
         warning += 1
     if (np.isnan(cf).any()):
         my_warning("your crop factor contains a not-a-number")
         warning += 1
     if (warning == 0):
-        print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
+        print("Your values seem to be reasonable (no obvious errors in terms of incorrect number type or extreme values")
         my_warning("This does not mean that they are correct.")
  
 def check_v_crop_factor(v_cf_in):
@@ -1248,7 +1248,7 @@ def check_ET(ET_in):
     if (np.mean(np.abs(ET_in)) < 1e-2):
         my_warning("your actual evapotranspiration seems quite low, check your calculation and units")
         warning += 1
-    if ( (type(ET_in[0]) == np.int64) | (type(ET_in[0]) == np.int32) ):
+    if ( (type(ET_in.iloc[0]) == np.int64) | (type(ET_in.iloc[0]) == np.int32) ):
         my_warning("your actual evapotranspiration should be a real number, not an integer")
         warning += 1
     if (np.isnan(ET_in).any()):
@@ -1268,6 +1268,38 @@ def check_v_ET(v_ET_in):
         None
     """
     check_ET(v_ET_in)
+
+def check_LE(LE_in):
+    warning = 0
+    if (np.sum(LE_in < 0)):
+        my_warning("actual evapotranspiration is usually positive")
+        warning += 1
+    if (np.sum(LE_in > 10*28.4)):
+        my_warning("actual evapotranspiration above 10 mm/day is quite unlikely")
+        warning += 1
+    if (np.mean(np.abs(LE_in)) < 1e-2):
+        my_warning("your actual evapotranspiration seems quite low, check your calculation and units")
+        warning += 1
+    if ( (type(LE_in.iloc[0]) == np.int64) | (type(LE_in.iloc[0]) == np.int32) ):
+        my_warning("your actual evapotranspiration should be a real number, not an integer")
+        warning += 1
+    if (np.isnan(LE_in).any()):
+        my_warning("your actual evapotranspiration contains a not-a-number")
+        warning += 1
+    if (warning == 0):
+        print("Your values seem to be reasonable (no obious errors in terms of incorrect number type or extreme values")
+        my_warning("This does not mean that they are correct.")
+
+def check_v_LE(v_LE_in):
+    """
+    Check if your values for the actual LE (in W/m2 !) make sense
+
+    Input:
+        v_LE_in           : your values for actual LE (in W/m2)
+    Return:
+        None
+    """
+    check_LE(v_LE_in)
         
 def f_declination(Gamma):
     c0 =  0.006918
